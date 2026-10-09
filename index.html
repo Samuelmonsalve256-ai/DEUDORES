@@ -692,7 +692,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 .notif-btn-next:hover { text-decoration:underline; }
 #notif-queue-badge { display:none !important; }
 
-.toast { position:fixed; bottom:2rem; left:50%; transform:translateX(-50%); background:var(--accent); color:#0a0a0f; font-family:'Syne',sans-serif; font-weight:700; font-size:13px; padding:10px 22px; border-radius:99px; z-index:999; opacity:0; pointer-events:none; transition:opacity .25s; white-space:nowrap; }
+.toast { position:fixed; bottom:2rem; left:50%; transform:translateX(-50%); background:var(--accent); color:#0a0a0f; font-family:'Syne',sans-serif; font-weight:700; font-size:13px; padding:10px 22px; border-radius:99px; z-index:999; opacity:0; pointer-events:none; transition:opacity .25s; width:max-content; max-width:calc(100vw - 32px); text-align:center; }
 .toast.show { opacity:1; }
 /* Notif queue badge */
 .notif-queue-badge { position:fixed; bottom:2rem; right:2rem; background:var(--accent2); color:#fff; font-family:'Syne',sans-serif; font-weight:800; font-size:12px; padding:6px 12px; border-radius:99px; cursor:pointer; z-index:490; display:none; box-shadow:0 4px 20px rgba(255,107,107,.4); animation:pulse 1.6s ease-in-out infinite; }
@@ -704,7 +704,32 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
   .debtor-right { flex-direction:column; align-items:flex-end; gap:6px; }
 }
 </style>
+<style>
+/* NUBE: indicador, inicio de sesion e historial */
+.dd-sync { display:inline-flex; align-items:center; gap:8px; }
+.dd-sync::before { content:''; width:8px; height:8px; border-radius:50%; background:var(--sync,var(--text3)); box-shadow:0 0 0 3px var(--sync-halo,transparent); flex-shrink:0; }
+.dd-sync[data-estado="guardado"]  { --sync:var(--accent);  --sync-halo:rgba(0,229,160,.18); }
+.dd-sync[data-estado="guardando"], .dd-sync[data-estado="cargando"] { --sync:var(--accent3); --sync-halo:rgba(255,209,102,.18); }
+.dd-sync[data-estado="guardando"]::before, .dd-sync[data-estado="cargando"]::before { animation:ddLatido 1s ease-in-out infinite; }
+.dd-sync[data-estado="error"] { --sync:var(--accent2); --sync-halo:rgba(255,107,107,.2); color:var(--accent2); border-color:rgba(255,107,107,.3); }
+.dd-sync[data-estado^="sin-"] { --sync:#ffaa44; --sync-halo:rgba(255,170,68,.2); }
+@keyframes ddLatido { 50% { opacity:.35; } }
+.dd-login-overlay { background:var(--bg); z-index:600; }
+.dd-msg { font-size:13px; line-height:1.5; margin-bottom:12px; display:none; }
+.dd-link { background:none; border:none; color:var(--text2); font-family:'DM Sans',sans-serif; font-size:13px; cursor:pointer; padding:4px 0; text-decoration:underline; }
+.dd-link:hover { color:var(--text); }
+.dd-cuenta { font-size:13px; color:var(--text2); line-height:1.7; background:var(--surface2); border-radius:var(--radius-sm); padding:12px 14px; margin-bottom:1rem; word-break:break-word; }
+.dd-cuenta strong { color:var(--text); }
+.dd-hist-item { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border-radius:var(--radius-sm); background:var(--surface2); margin-bottom:6px; }
+.dd-hist-name { font-weight:500; }
+.dd-hist-sub { font-size:12px; color:var(--text2); }
+.dd-hist-motivo { font-size:10px; text-transform:uppercase; letter-spacing:.08em; padding:1px 7px; border-radius:10px; margin-left:6px; background:var(--surface3); color:var(--text2); }
+.dd-hist-motivo.eliminacion { background:rgba(255,107,107,.12); color:var(--accent2); }
+.dd-import-opt { display:flex; gap:10px; align-items:flex-start; text-align:left; font-size:13px; color:var(--text2); margin-bottom:8px; cursor:pointer; }
+.dd-import-opt input { margin-top:4px; accent-color:var(--accent); }
+</style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
 </head>
 <body>
 <div class="app">
@@ -715,6 +740,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
       <div class="logo-title">Mis Deudores</div>
     </div>
     <div class="header-actions">
+      <button id="dd-sync" class="btn-notif dd-sync" data-estado="cargando" onclick="ddSincronizarAhora()" title="Estado de la nube">Cargando…</button>
       <button id="btn-notif" class="btn-notif" onclick="solicitarPermiso()">🔕 Activar notificaciones</button>
 
       <!-- Menu opciones avanzadas (oculto) -->
@@ -722,6 +748,13 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
         <button class="btn-notif opts-trigger" onclick="toggleOpts()" title="Opciones avanzadas">&#8942;</button>
         <div class="opts-menu" id="opts-menu">
           <div class="opts-title">Opciones avanzadas</div>
+          <button class="opts-item" onclick="ddAbrirCuenta();toggleOpts()">
+            <span>&#9729;&#65039;</span> Cuenta y nube
+          </button>
+          <button class="opts-item" onclick="ddAbrirHistorial();toggleOpts()">
+            <span>&#128338;</span> Recuperar datos borrados o cambiados
+          </button>
+          <div style="height:1px;background:var(--border);margin:4px 0"></div>
           <button class="opts-item" onclick="guardarBackup();toggleOpts()">
             <span>&#128190;</span> Guardar backup
           </button>
@@ -1076,13 +1109,19 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
   <div class="modal" style="max-width:400px;text-align:center">
     <div style="font-size:44px;margin-bottom:.75rem">&#128193;</div>
     <div class="modal-title" style="margin-bottom:.5rem">Cargar backup</div>
-    <p style="color:var(--text2);font-size:14px;margin-bottom:1rem;line-height:1.6" id="backup-load-msg"></p>
-    <div style="background:rgba(255,107,107,.08);border:1px solid rgba(255,107,107,.25);border-radius:8px;padding:10px 14px;margin-bottom:1.25rem;font-size:12px;color:var(--accent2);text-align:left">
-      ⚠️ Esto reemplazara todos los datos actuales con los del archivo. Asegurate de que sea el archivo correcto.
+    <p style="color:var(--text2);font-size:14px;margin-bottom:1rem;line-height:1.6;white-space:pre-line;text-align:left" id="backup-load-msg"></p>
+    <div id="backup-load-opciones" style="margin-bottom:1rem">
+      <label class="dd-import-opt"><input type="radio" name="backup-modo" value="nuevos" checked>
+        <span><strong style="color:var(--text)">Agregar solo los que faltan</strong><br>Los deudores que ya tienes quedan como estan.</span></label>
+      <label class="dd-import-opt"><input type="radio" name="backup-modo" value="reemplazar">
+        <span><strong style="color:var(--text)">Agregar y reemplazar los que son distintos</strong><br>Los que cambiaron toman la version del archivo.</span></label>
+    </div>
+    <div style="background:rgba(0,229,160,.07);border:1px solid rgba(0,229,160,.2);border-radius:8px;padding:10px 14px;margin-bottom:1.25rem;font-size:12px;color:var(--accent);text-align:left">
+      Nunca se borra ningun deudor al cargar un backup. Si reemplazas uno por error, la version anterior queda en "Recuperar datos borrados o cambiados".
     </div>
     <div style="display:flex;gap:10px;justify-content:center">
       <button class="btn-cancel" onclick="cerrarBackupLoad()">Cancelar</button>
-      <button class="btn-save" onclick="confirmarCargaBackup()">Cargar y reemplazar</button>
+      <button class="btn-save" id="backup-load-ok" onclick="confirmarCargaBackup()">Cargar</button>
     </div>
   </div>
 </div>
@@ -1100,6 +1139,72 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
       <button class="btn-cancel" onclick="cerrarRestore()">Cancelar</button>
       <button class="btn-save" style="background:var(--accent3);color:#0a0a0f" onclick="ejecutarRestaurar()">Restaurar</button>
     </div>
+  </div>
+</div>
+
+<!-- INICIO DE SESION (la misma cuenta de MotoContable) -->
+<div class="overlay dd-login-overlay" id="dd-login">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-title" id="dd-login-titulo" style="text-align:center;margin-bottom:.5rem">Inicia sesion</div>
+    <p id="dd-login-sub" style="font-size:13px;color:var(--text2);text-align:center;line-height:1.6;margin-bottom:1.25rem"></p>
+    <form id="dd-login-form" onsubmit="event.preventDefault();ddLoginEnviar()">
+      <div class="field" id="dd-login-email-g">
+        <label for="dd-login-email">Correo</label>
+        <input type="email" id="dd-login-email" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+      </div>
+      <div class="field">
+        <label for="dd-login-pass">Contrasena</label>
+        <input type="password" id="dd-login-pass" autocomplete="current-password" required>
+      </div>
+      <div id="dd-login-msg" class="dd-msg"></div>
+      <button type="submit" class="btn-save" id="dd-login-btn" style="width:100%">Iniciar sesion</button>
+    </form>
+    <div id="dd-login-extra" style="display:flex;justify-content:space-between;gap:8px;margin-top:12px;flex-wrap:wrap">
+      <button type="button" class="dd-link" onclick="ddLoginOlvide()">¿Olvidaste tu contrasena?</button>
+      <button type="button" class="dd-link" onclick="ddLoginSinSesion()">Continuar sin iniciar sesion</button>
+    </div>
+  </div>
+</div>
+
+<!-- PREGUNTA GENERICA -->
+<div class="overlay" id="dd-pregunta" style="z-index:700">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title" id="dd-pregunta-titulo" style="margin-bottom:.75rem"></div>
+    <p id="dd-pregunta-texto" style="font-size:14px;color:var(--text2);line-height:1.6;white-space:pre-line;margin-bottom:1.5rem"></p>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn-cancel" id="dd-pregunta-no">Cancelar</button>
+      <button class="btn-save" id="dd-pregunta-si">Aceptar</button>
+    </div>
+  </div>
+</div>
+
+<!-- CUENTA Y NUBE -->
+<div class="overlay" id="dd-cuenta-overlay">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <div class="modal-title">Cuenta y nube</div>
+      <button class="modal-close" onclick="ddCerrarCuenta()">&times;</button>
+    </div>
+    <div class="dd-cuenta" id="dd-cuenta-info"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
+      <button class="btn-cancel" id="dd-btn-sesion" onclick="ddBotonSesion()">Iniciar sesion</button>
+      <button class="btn-save" onclick="ddSincronizarAhora()">Sincronizar ahora</button>
+    </div>
+  </div>
+</div>
+
+<!-- HISTORIAL EN LA NUBE -->
+<div class="overlay" id="dd-hist-overlay">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <div class="modal-title">Recuperar datos</div>
+      <button class="modal-close" onclick="ddCerrarHistorial()">&times;</button>
+    </div>
+    <p style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:1rem">
+      Cada vez que editas, borras un abono o eliminas un deudor, la version anterior queda guardada en la nube.
+      Pulsa "Restaurar" para volver a esa version.
+    </p>
+    <div id="dd-hist-body"></div>
   </div>
 </div>
 
@@ -1160,8 +1265,42 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 <script>
 var debtors = [];
 try { debtors = JSON.parse(localStorage.getItem('deudores_v3') || '[]'); } catch(ignore) { debtors = []; }
+if (!Array.isArray(debtors)) debtors = [];
+
+/* Cada deudor necesita un id fijo para guardarse en la nube sin mezclarse con otro.
+   A los que no lo tienen se les da uno calculado con su contenido: el mismo backup
+   cargado dos veces da los mismos ids y no se duplica. */
+function nuevoIdDeudor() {
+  return 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+function asignarIds(lista) {
+  var usados = {};
+  lista.forEach(function(d) { if (d && d.id) usados[d.id] = true; });
+  var cambio = false;
+  lista.forEach(function(d) {
+    if (!d || d.id) return;
+    var base = 'd_' + ddHash(d).replace(/:/g, '_');
+    var id = base, n = 2;
+    while (usados[id]) id = base + '_' + (n++);
+    d.id = id; usados[id] = true; cambio = true;
+  });
+  return cambio;
+}
+function idxPorId(id) {
+  for (var i = 0; i < debtors.length; i++) if (debtors[i] && debtors[i].id === id) return i;
+  return -1;
+}
+function esDeudorValido(d) {
+  return d && typeof d === 'object' && !Array.isArray(d) && typeof d.nombre === 'string' && d.nombre.trim() !== '';
+}
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
 
 var editId = null;
+var editUid = null;   // id del deudor en edicion: la nube puede cambiar el orden de la lista
 var filterState = 'all';
 var COLORS = [
   {bg:'rgba(0,229,160,.15)',   fg:'#00e5a0'},
@@ -1171,11 +1310,25 @@ var COLORS = [
   {bg:'rgba(56,189,248,.15)',  fg:'#38bdf8'}
 ];
 
-function persist() {
+/* Guarda en este dispositivo y avisa a la nube. Si el navegador no tiene espacio,
+   se liberan primero las copias locales; si aun asi falla, se avisa (antes fallaba
+   en silencio). La nube recibe el cambio igual, porque lo toma de la memoria. */
+function guardarLocal() {
+  var json = JSON.stringify(debtors);
+  try { localStorage.setItem('deudores_v3', json); return true; } catch(e) {}
   try {
-    localStorage.setItem('deudores_v3', JSON.stringify(debtors));
-    guardarRespaldo();
-  } catch(ignore) {}
+    localStorage.removeItem('deudores_v3_backups');
+    localStorage.setItem('deudores_v3', json);
+    return true;
+  } catch(e2) {
+    showToast('⚠️ No se pudo guardar en este dispositivo (sin espacio). Mantente conectado para que se guarde en la nube', 6000);
+    return false;
+  }
+}
+
+function persist() {
+  if (guardarLocal()) guardarRespaldo();
+  ddMarcarCambios();
 }
 
 /* ======= MOTOR DE AUDIO ======= */
@@ -1267,11 +1420,19 @@ function sonidoAlerta() {
 function guardarRespaldo() {
   try {
     var respaldos = JSON.parse(localStorage.getItem('deudores_v3_backups') || '[]');
+    // Como mucho una copia cada 30 minutos: asi las 10 copias cubren varias horas
+    // y no solo los ultimos 10 clics. El historial completo esta en la nube.
+    if (respaldos[0] && Date.now() - Date.parse(respaldos[0].fecha) < 30 * 60000) return;
     var nuevo = { fecha: new Date().toISOString(), datos: debtors };
     respaldos.unshift(nuevo);
     // Mantener solo los ultimos 10 respaldos para no llenar el almacenamiento
     if (respaldos.length > 10) respaldos = respaldos.slice(0, 10);
-    localStorage.setItem('deudores_v3_backups', JSON.stringify(respaldos));
+    try {
+      localStorage.setItem('deudores_v3_backups', JSON.stringify(respaldos));
+    } catch(e) {
+      // Sin espacio: se conservan menos copias en vez de ninguna
+      localStorage.setItem('deudores_v3_backups', JSON.stringify(respaldos.slice(0, 3)));
+    }
   } catch(ignore) {}
 }
 
@@ -1280,7 +1441,9 @@ function restaurarRespaldo(indice) {
     var respaldos = JSON.parse(localStorage.getItem('deudores_v3_backups') || '[]');
     if (!respaldos[indice]) return;
     debtors = respaldos[indice].datos;
-    localStorage.setItem('deudores_v3', JSON.stringify(debtors));
+    asignarIds(debtors);
+    guardarLocal();
+    ddMarcarCambios();
     renderList();
     showToast('Respaldo restaurado correctamente');
   } catch(e) {
@@ -1374,9 +1537,8 @@ function calcInterest(monto, rate, d1, d2) {
 function getStatus(d) {
   if (d.pagado) return 'paid';
   if (!d.fechaPago) return 'pending';
-  var today = new Date(); today.setHours(0,0,0,0);
-  var due   = new Date(d.fechaPago); due.setHours(0,0,0,0);
-  return due < today ? 'overdue' : 'pending';
+  var dl = daysLeft(d.fechaPago);
+  return dl !== null && dl < 0 ? 'overdue' : 'pending';
 }
 
 function pillHTML(days, paid) {
@@ -1444,6 +1606,15 @@ function makeCuotas(total, n, startDate, freq, endDate, diasPersonalizados) {
     result.push({monto: each, fecha: toISO(dd), pagada: false});
   }
   return result;
+}
+
+/* true si la fecha esta vacia o existe de verdad (evita 31/02, 31/04, etc.) */
+function fechaValida(iso) {
+  if (!iso) return true;
+  var p = iso.split('-');
+  if (p.length !== 3) return false;
+  var d = new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]));
+  return d.getFullYear() === parseInt(p[0]) && d.getMonth() === parseInt(p[1]) - 1 && d.getDate() === parseInt(p[2]);
 }
 
 function toISO(d) {
@@ -1566,6 +1737,9 @@ function renderList() {
   document.getElementById('s-count').textContent     = activos;
 
   var container = document.getElementById('list');
+  var abiertas = {};
+  var abiertasEls = container.querySelectorAll('.debtor-card.open');
+  for (var ab0 = 0; ab0 < abiertasEls.length; ab0++) abiertas[abiertasEls[ab0].getAttribute('data-uid')] = true;
 
   if (visible.length === 0) {
     container.innerHTML = '<div class="empty"><div class="empty-icon">&#128176;</div>No hay deudores que mostrar.<br>Agrega uno con el boton de arriba.</div>';
@@ -1671,7 +1845,7 @@ function renderList() {
           '<div class="abono-row">' +
             '<div>' +
               '<span class="abono-monto">' + money(ab.monto) + '</span>' +
-              '<span class="abono-fecha">' + dateStr(ab.fecha) + (ab.nota ? ' &middot; ' + ab.nota : '') + '</span>' +
+              '<span class="abono-fecha">' + dateStr(ab.fecha) + (ab.nota ? ' &middot; ' + esc(ab.nota) : '') + '</span>' +
             '</div>' +
             '<button class="abono-del" onclick="eliminarAbono(' + ri + ',' + ai + ',event)" title="Eliminar abono">&times;</button>' +
           '</div>';
@@ -1679,13 +1853,13 @@ function renderList() {
     }
 
     out +=
-      '<div class="debtor-card" id="card-' + ri + '">' +
+      '<div class="debtor-card' + (abiertas[d.id] ? ' open' : '') + '" id="card-' + ri + '" data-uid="' + esc(d.id) + '">' +
         '<div class="card-top" onclick="toggleCard(' + ri + ')">' +
           '<div class="debtor-left">' +
-            '<div class="avatar" style="background:' + col.bg + ';color:' + col.fg + '">' + initials(d.nombre) + '</div>' +
+            '<div class="avatar" style="background:' + col.bg + ';color:' + col.fg + '">' + esc(initials(d.nombre)) + '</div>' +
             '<div>' +
-              '<div class="debtor-name">' + d.nombre + '</div>' +
-              '<div class="debtor-concept">' + (d.concepto || 'Sin concepto') + '</div>' +
+              '<div class="debtor-name">' + esc(d.nombre) + '</div>' +
+              '<div class="debtor-concept">' + (esc(d.concepto) || 'Sin concepto') + '</div>' +
             '</div>' +
           '</div>' +
           '<div class="debtor-right">' +
@@ -1701,13 +1875,13 @@ function renderList() {
           '<div class="card-divider"></div>' +
           bannerHTML +
           '<div class="info-grid">' +
-            '<div class="info-item"><div class="info-key">Cedula</div><div class="info-val">' + (d.cedula || '—') + '</div></div>' +
+            '<div class="info-item"><div class="info-key">Cedula</div><div class="info-val">' + (esc(d.cedula) || '—') + '</div></div>' +
             '<div class="info-item"><div class="info-key">Telefono</div><div class="info-val">' +
               (d.telefono
-                ? '<a href="https://wa.me/57' + d.telefono.replace(/\D/g,'') + '" target="_blank" style="color:var(--accent);text-decoration:none">' + d.telefono + ' &#128241;</a>'
+                ? '<a href="https://wa.me/' + limpiarTel(d.telefono) + '" target="_blank" style="color:var(--accent);text-decoration:none">' + esc(d.telefono) + ' &#128241;</a>'
                 : '—') +
             '</div></div>' +
-            '<div class="info-item"><div class="info-key">Concepto</div><div class="info-val">' + (d.concepto || '—') + '</div></div>' +
+            '<div class="info-item"><div class="info-key">Concepto</div><div class="info-val">' + (esc(d.concepto) || '—') + '</div></div>' +
             '<div class="info-item"><div class="info-key">Fecha prestamo</div><div class="info-val">' + dateStr(d.fechaPrestamo) + '</div></div>' +
             '<div class="info-item"><div class="info-key">Fecha limite</div><div class="info-val">' + dateStr(d.fechaPago) + '</div></div>' +
             '<div class="info-item"><div class="info-key">Monto prestado</div><div class="info-val">' + money(d.monto) + '</div></div>' +
@@ -1796,7 +1970,7 @@ function renderNotifPanel() {
     html +=
       '<div class="notif-item">' +
         '<div>' +
-          '<div class="notif-name">' + it.nombre + '</div>' +
+          '<div class="notif-name">' + esc(it.nombre) + '</div>' +
           '<div class="notif-desc">' + lbl + dateStr(it.fecha) + '</div>' +
         '</div>' +
         '<div style="display:flex;align-items:center;gap:10px">' +
@@ -1832,11 +2006,11 @@ function buildAlerts() {
         if (c.status === 'pagada' || !c.fecha) return;
         var dl = daysLeft(c.fecha);
         var montoFaltante = c.status === 'parcial' ? c.restante : c.monto;
-        if (dl !== null && dl <= 3) list.push({key:'d'+di+'q'+ci, nombre:d.nombre, num:ci+1, monto:montoFaltante, fecha:c.fecha, dl:dl});
+        if (dl !== null && dl <= 3) list.push({key:'d'+(d.id||di)+'q'+ci, nombre:d.nombre, num:ci+1, monto:montoFaltante, fecha:c.fecha, dl:dl});
       });
     } else if (d.fechaPago) {
       var dl = daysLeft(d.fechaPago);
-      if (dl !== null && dl <= 3) list.push({key:'d'+di+'f', nombre:d.nombre, num:null, monto:calcInterest(d.monto,d.interes,d.fechaPrestamo,d.fechaPago), fecha:d.fechaPago, dl:dl});
+      if (dl !== null && dl <= 3) list.push({key:'d'+(d.id||di)+'f', nombre:d.nombre, num:null, monto:calcInterest(d.monto,d.interes,d.fechaPrestamo,d.fechaPago), fecha:d.fechaPago, dl:dl});
     }
   });
   return list;
@@ -1926,6 +2100,7 @@ setInterval(function() {
 /* ======= MODAL ======= */
 function openModal(id) {
   editId = (typeof id === 'number') ? id : null;
+  editUid = editId !== null && debtors[editId] ? debtors[editId].id : null;
   document.getElementById('modal-title').textContent = editId !== null ? 'Editar deudor' : 'Nuevo deudor';
   var today = new Date().toISOString().split('T')[0];
   if (editId !== null) {
@@ -1966,6 +2141,7 @@ function openModal(id) {
 function closeModal() {
   document.getElementById('overlay').classList.remove('open');
   editId = null;
+  editUid = null;
 }
 
 function onFreqChange() {
@@ -2000,7 +2176,14 @@ function saveDebtor() {
   var nombre = document.getElementById('f-nombre').value.trim();
   if (!nombre) { showToast('Escribe el nombre'); return; }
   var monto = parseFloat(document.getElementById('f-monto').value) || 0;
-  if (!monto) { showToast('Escribe el monto prestado'); return; }
+  if (!monto || monto < 0) { showToast('Escribe el monto prestado'); return; }
+  var fpTxt = getDateFromSelectors('f-prestamo'), fvTxt = getDateFromSelectors('f-pago');
+  if (!fechaValida(fpTxt) || !fechaValida(fvTxt)) { showToast('Revisa las fechas: ese dia no existe en ese mes'); return; }
+  if (fpTxt && fvTxt && fvTxt < fpTxt) { showToast('La fecha limite no puede ser antes de la fecha del prestamo'); return; }
+  if (editUid) {
+    editId = idxPorId(editUid);
+    if (editId < 0) { closeModal(); showToast('Ese deudor fue eliminado desde otro dispositivo'); return; }
+  }
 
   var interes  = parseFloat(document.getElementById('f-interes').value) || 0;
   var fp       = getDateFromSelectors('f-prestamo');
@@ -2021,7 +2204,10 @@ function saveDebtor() {
     cuotas = makeCuotas(total, n, fp, freq, fv, diasFreq);
   }
 
+  var anterior = editId !== null ? debtors[editId] : null;
   var obj = {
+    id:            anterior && anterior.id ? anterior.id : nuevoIdDeudor(),
+    creado:        anterior ? (anterior.creado || null) : new Date().toISOString(),
     nombre:        nombre,
     cedula:        document.getElementById('f-cedula').value.trim(),
     telefono:      document.getElementById('f-telefono').value.trim(),
@@ -2037,34 +2223,40 @@ function saveDebtor() {
     pagado:        editId !== null ? !!debtors[editId].pagado : false
   };
 
-  if (editId !== null) debtors[editId] = obj;
+  var esEdicion = editId !== null;
+  if (esEdicion) debtors[editId] = obj;
   else debtors.push(obj);
 
   persist();
   closeModal();
   renderList();
-  showToast(editId !== null ? 'Deudor actualizado' : 'Deudor agregado');
+  showToast(esEdicion ? 'Deudor actualizado' : 'Deudor agregado');
 }
 
 var pendingDeleteIdx = null;
+var pendingDeleteUid = null;
 
 function deleteDebtor(i, e) {
   e.stopPropagation();
   pendingDeleteIdx = i;
+  pendingDeleteUid = debtors[i] ? debtors[i].id : null;
   var nombre = debtors[i] ? debtors[i].nombre : 'este deudor';
-  document.getElementById('confirm-msg').textContent = 'Seguro que quieres eliminar a ' + nombre + '? Esta accion no se puede deshacer.';
+  document.getElementById('confirm-msg').textContent = '¿Seguro que quieres eliminar a ' + nombre + '? Si fue un error, podras recuperarlo en el menu ⋮ → "Recuperar datos borrados o cambiados".';
   document.getElementById('confirm-overlay').classList.add('open');
 }
 
 function closeConfirm() {
   document.getElementById('confirm-overlay').classList.remove('open');
   pendingDeleteIdx = null;
+  pendingDeleteUid = null;
 }
 
 function confirmDelete() {
   if (pendingDeleteIdx === null) return;
-  debtors.splice(pendingDeleteIdx, 1);
+  var idx = pendingDeleteUid ? idxPorId(pendingDeleteUid) : pendingDeleteIdx;
+  if (idx >= 0) debtors.splice(idx, 1);
   pendingDeleteIdx = null;
+  pendingDeleteUid = null;
   persist();
   closeConfirm();
   renderList();
@@ -2179,12 +2371,18 @@ function enviarWA(i, e) {
 
 /* ======= RECIBO ======= */
 var reciboDeudorIdx = null;
+var reciboDeudorUid = null;
+function deudorDelRecibo() {
+  var i = reciboDeudorUid ? idxPorId(reciboDeudorUid) : reciboDeudorIdx;
+  return i !== null && i >= 0 ? debtors[i] : null;
+}
 
 var waUrlRecibo = null;
 
 function verRecibo(i, e) {
   e.stopPropagation();
   reciboDeudorIdx = i;
+  reciboDeudorUid = debtors[i] ? debtors[i].id : null;
   var d      = debtors[i];
   var total  = calcInterest(d.monto, d.interes, d.fechaPrestamo, d.fechaPago);
   var cobrado= totalAbonos(d);
@@ -2212,10 +2410,10 @@ function verRecibo(i, e) {
 
   // Info grid
   var infoHTML =
-    '<div class="rc-info-item"><div class="rc-info-key">Nombre</div><div class="rc-info-val">' + d.nombre + '</div></div>' +
-    (d.cedula ? '<div class="rc-info-item"><div class="rc-info-key">Cedula</div><div class="rc-info-val">' + d.cedula + '</div></div>' : '') +
-    (d.telefono ? '<div class="rc-info-item"><div class="rc-info-key">Telefono</div><div class="rc-info-val">' + d.telefono + '</div></div>' : '') +
-    '<div class="rc-info-item"><div class="rc-info-key">Concepto</div><div class="rc-info-val">' + (d.concepto || '—') + '</div></div>' +
+    '<div class="rc-info-item"><div class="rc-info-key">Nombre</div><div class="rc-info-val">' + esc(d.nombre) + '</div></div>' +
+    (d.cedula ? '<div class="rc-info-item"><div class="rc-info-key">Cedula</div><div class="rc-info-val">' + esc(d.cedula) + '</div></div>' : '') +
+    (d.telefono ? '<div class="rc-info-item"><div class="rc-info-key">Telefono</div><div class="rc-info-val">' + esc(d.telefono) + '</div></div>' : '') +
+    '<div class="rc-info-item"><div class="rc-info-key">Concepto</div><div class="rc-info-val">' + (esc(d.concepto) || '—') + '</div></div>' +
     '<div class="rc-info-item"><div class="rc-info-key">Fecha prestamo</div><div class="rc-info-val">' + dateStr(d.fechaPrestamo) + '</div></div>' +
     '<div class="rc-info-item"><div class="rc-info-key">Fecha limite</div><div class="rc-info-val">' + dateStr(d.fechaPago) + '</div></div>';
   document.getElementById('rc-info-grid').innerHTML = infoHTML;
@@ -2227,7 +2425,7 @@ function verRecibo(i, e) {
       tableHTML +=
         '<div class="rc-table-row">' +
           '<div class="rc-table-left">' +
-            '<div class="rc-table-name">' + (a.nota || 'Abono registrado') + '</div>' +
+            '<div class="rc-table-name">' + (esc(a.nota) || 'Abono registrado') + '</div>' +
             '<div class="rc-table-sub">' + dateStr(a.fecha) + '</div>' +
           '</div>' +
           '<div class="rc-table-amount">+ ' + money(a.monto) + '</div>' +
@@ -2316,9 +2514,8 @@ function copiarAlPortapapeles(blob) {
     var item = new ClipboardItem({ 'image/png': blob });
     navigator.clipboard.write([item]).then(function() {
       // Imagen copiada — abrir WhatsApp Web y mostrar instrucción
-      var tel = debtors[reciboDeudorIdx] && debtors[reciboDeudorIdx].telefono
-        ? limpiarTel(debtors[reciboDeudorIdx].telefono)
-        : '';
+      var dr = deudorDelRecibo();
+      var tel = dr && dr.telefono ? limpiarTel(dr.telefono) : '';
       if (tel) window.open('https://wa.me/' + tel, '_blank');
       mostrarBannerPegar();
     }).catch(function() {
@@ -2365,7 +2562,7 @@ function capturarRecibo(card, accion) {
 
     canvas.toBlob(function(blob) {
       var nombreArchivo = 'recibo-' +
-        (debtors[reciboDeudorIdx] ? debtors[reciboDeudorIdx].nombre.replace(/\s+/g,'_') : 'pago') +
+        (deudorDelRecibo() ? deudorDelRecibo().nombre.replace(/\s+/g,'_') : 'pago') +
         '.png';
       var file = new File([blob], nombreArchivo, { type: 'image/png' });
 
@@ -2432,6 +2629,7 @@ function mostrarInstruccionWA() {
 function cerrarRecibo() {
   document.getElementById('recibo-overlay').classList.remove('open');
   reciboDeudorIdx = null;
+  reciboDeudorUid = null;
   waUrlRecibo = null;
 }
 
@@ -2441,10 +2639,12 @@ document.getElementById('recibo-overlay').addEventListener('click', function(e) 
 
 
 var abonoDeudorIdx = null;
+var abonoDeudorUid = null;
 
 function abrirAbono(i, e) {
   if (e) e.stopPropagation();
   abonoDeudorIdx = i;
+  abonoDeudorUid = debtors[i] ? debtors[i].id : null;
   var d = debtors[i];
   var total = calcInterest(d.monto, d.interes, d.fechaPrestamo, d.fechaPago);
   var pagado = totalAbonos(d);
@@ -2487,17 +2687,21 @@ function fillAbonoDateSelectors() {
 function cerrarAbono() {
   document.getElementById('abono-overlay').classList.remove('open');
   abonoDeudorIdx = null;
+  abonoDeudorUid = null;
 }
 
 function guardarAbono() {
   if (abonoDeudorIdx === null) return;
   var monto = parseFloat(document.getElementById('ab-monto').value) || 0;
   if (!monto || monto <= 0) { showToast('Escribe la cantidad abonada'); return; }
+  if (abonoDeudorUid) abonoDeudorIdx = idxPorId(abonoDeudorUid);
+  if (abonoDeudorIdx < 0 || !debtors[abonoDeudorIdx]) { cerrarAbono(); showToast('Ese deudor fue eliminado desde otro dispositivo'); return; }
 
   var d2 = document.getElementById('ab-fecha-d').value;
   var m2 = document.getElementById('ab-fecha-m').value;
   var y2 = document.getElementById('ab-fecha-y').value;
   var fecha = y2 + '-' + m2 + '-' + d2;
+  if (!fechaValida(fecha)) { showToast('Revisa la fecha del abono: ese dia no existe en ese mes'); return; }
   var nota = document.getElementById('ab-nota').value.trim();
 
   var deudor = debtors[abonoDeudorIdx];
@@ -2537,7 +2741,8 @@ document.getElementById('abono-overlay').addEventListener('click', function(e) {
 });
 document.getElementById('ab-monto').addEventListener('input', function() {
   if (abonoDeudorIdx === null) return;
-  var d = debtors[abonoDeudorIdx];
+  var d = debtors[abonoDeudorUid ? idxPorId(abonoDeudorUid) : abonoDeudorIdx];
+  if (!d) return;
   var total = calcInterest(d.monto, d.interes, d.fechaPrestamo, d.fechaPago);
   var pagado = totalAbonos(d);
   var pendiente = Math.max(0, total - pagado);
@@ -2635,11 +2840,13 @@ function actualizarBadge() {
   }
 }
 
-function showToast(msg) {
+var _toastTimer = null;
+function showToast(msg, ms) {
   var t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.add('show');
-  setTimeout(function(){ t.classList.remove('show'); }, 2400);
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(function(){ t.classList.remove('show'); }, ms || 2400);
 }
 
 /* ======= BACKUP MANUAL ======= */
@@ -2682,14 +2889,34 @@ function cargarBackup(event) {
       var contenido = JSON.parse(e.target.result);
       // Acepta tanto el formato nuevo (con wrapper) como el array directo
       var datos = Array.isArray(contenido) ? contenido :
-                  (contenido.datos && Array.isArray(contenido.datos)) ? contenido.datos : null;
-      if (!datos) { showToast('Archivo no valido'); return; }
+                  (contenido && contenido.datos && Array.isArray(contenido.datos)) ? contenido.datos : null;
+      if (!datos) { showToast('Este archivo no es un backup de Mis Deudores'); return; }
 
-      backupDataPendiente = datos;
-      var fecha = contenido.fecha ? new Date(contenido.fecha).toLocaleString('es-MX') : 'fecha desconocida';
+      // Solo se aceptan deudores con nombre; lo demas se descarta y se avisa
+      var validos = datos.filter(esDeudorValido).map(function(d) { return JSON.parse(JSON.stringify(d)); });
+      var descartados = datos.length - validos.length;
+      if (!validos.length) { showToast('El archivo no tiene deudores validos'); return; }
+      asignarIds(validos);
+
+      var nuevos = 0, distintos = 0, iguales = 0;
+      validos.forEach(function(d) {
+        var i = idxPorId(d.id);
+        if (i < 0) nuevos++;
+        else if (ddHash(debtors[i]) === ddHash(d)) iguales++;
+        else distintos++;
+      });
+      backupDataPendiente = validos;
+      var fecha = contenido.fecha ? new Date(contenido.fecha).toLocaleString('es-CO') : 'fecha desconocida';
       document.getElementById('backup-load-msg').textContent =
-        'El archivo contiene ' + datos.length + ' deudores guardados el ' + fecha + '. ' +
-        '¿Quieres cargar estos datos?';
+        'Archivo del ' + fecha + ' con ' + validos.length + ' deudores:\n' +
+        '• ' + nuevos + ' nuevos (no los tienes)\n' +
+        '• ' + distintos + ' que ya tienes pero con datos distintos\n' +
+        '• ' + iguales + ' iguales a los que ya tienes' +
+        (descartados ? '\n• ' + descartados + ' registros dañados que se ignoraran' : '');
+      document.getElementById('backup-load-opciones').style.display = distintos ? '' : 'none';
+      document.querySelector('input[name="backup-modo"][value="nuevos"]').checked = true;
+      document.getElementById('backup-load-ok').disabled = !(nuevos || distintos);
+      document.getElementById('backup-load-ok').textContent = (nuevos || distintos) ? 'Cargar' : 'No hay nada nuevo';
       document.getElementById('backup-load-overlay').classList.add('open');
     } catch(err) {
       showToast('Error leyendo el archivo');
@@ -2700,14 +2927,22 @@ function cargarBackup(event) {
   reader.readAsText(file);
 }
 
+/* Une el backup con los datos actuales. Nunca borra: lo que no viene en el
+   archivo se queda como esta. */
 function confirmarCargaBackup() {
   if (!backupDataPendiente) return;
-  debtors = backupDataPendiente;
+  var reemplazar = document.querySelector('input[name="backup-modo"]:checked').value === 'reemplazar';
+  var agregados = 0, reemplazados = 0;
+  backupDataPendiente.forEach(function(d) {
+    var i = idxPorId(d.id);
+    if (i < 0) { debtors.push(d); agregados++; }
+    else if (reemplazar && ddHash(debtors[i]) !== ddHash(d)) { debtors[i] = d; reemplazados++; }
+  });
   backupDataPendiente = null;
   persist();
   cerrarBackupLoad();
   renderList();
-  showToast('Backup cargado correctamente');
+  showToast('Backup cargado: ' + agregados + ' agregados' + (reemplazados ? ', ' + reemplazados + ' reemplazados' : ''), 4000);
 }
 
 function cerrarBackupLoad() {
@@ -2990,8 +3225,8 @@ function renderRanking() {
     return '<div class="an-rank-item">' +
       '<div class="an-rank-num ' + numCls + '">' + (i+1) + '</div>' +
       '<div class="an-rank-info">' +
-        '<div class="an-rank-name">' + it.nombre + ' ' + estado + '</div>' +
-        '<div class="an-rank-detail">' + (it.cedula ? 'CC: ' + it.cedula + ' &middot; ' : '') + 'Deuda total: ' + money(it.total) + '</div>' +
+        '<div class="an-rank-name">' + esc(it.nombre) + ' ' + estado + '</div>' +
+        '<div class="an-rank-detail">' + (it.cedula ? 'CC: ' + esc(it.cedula) + ' &middot; ' : '') + 'Deuda total: ' + money(it.total) + '</div>' +
       '</div>' +
       '<div class="an-rank-right">' +
         '<div class="an-rank-pct" style="color:' + pctColor + '">' + it.pct + '%</div>' +
@@ -3040,7 +3275,7 @@ function renderTimeline() {
     return '<div class="an-tl-item">' +
       '<div class="an-tl-dot ' + ev.tipo + '"></div>' +
       '<div class="an-tl-fecha">' + dateStr(ev.fecha) + '</div>' +
-      '<div class="an-tl-nombre">' + ev.nombre + '<span>Cuota ' + ev.cuota + '</span></div>' +
+      '<div class="an-tl-nombre">' + esc(ev.nombre) + '<span>Cuota ' + ev.cuota + '</span></div>' +
       '<div class="an-tl-monto">' + money(ev.monto) + '</div>' +
       '<div class="an-tl-dias ' + ev.tipo + '">' + diasTxt + '</div>' +
     '</div>';
@@ -3116,13 +3351,13 @@ function abrirMesDetail(mes, anio) {
       'Pagos recibidos (' + cobros.length + ')' +
     '</div>';
     cobros.forEach(function(x) {
-      var lbl = x.status === 'abono' ? (x.nota || 'Abono libre') : 'Cuota ' + x.cuota;
+      var lbl = x.status === 'abono' ? (esc(x.nota) || 'Abono libre') : 'Cuota ' + x.cuota;
       html += '<div class="mes-row cobrado-row">' +
         '<div class="mes-row-left">' +
-          '<div class="mes-row-name">' + x.nombre + '</div>' +
+          '<div class="mes-row-name">' + esc(x.nombre) + '</div>' +
           '<div class="mes-row-sub">' +
             lbl + ' &middot; ' + dateStr(x.fecha) +
-            (x.cedula ? ' &middot; CC: ' + x.cedula : '') +
+            (x.cedula ? ' &middot; CC: ' + esc(x.cedula) : '') +
           '</div>' +
         '</div>' +
         '<div class="mes-row-monto" style="color:var(--accent)">' + money(x.monto) + '</div>' +
@@ -3147,7 +3382,7 @@ function abrirMesDetail(mes, anio) {
       var montoColor = x.status === 'parcial' ? '#ffaa44' : 'var(--accent2)';
       html += '<div class="mes-row ' + rowCls + '">' +
         '<div class="mes-row-left">' +
-          '<div class="mes-row-name">' + x.nombre + '</div>' +
+          '<div class="mes-row-name">' + esc(x.nombre) + '</div>' +
           '<div class="mes-row-sub">' +
             'Cuota ' + x.cuota + ' &middot; ' + dateStr(x.fecha) +
             '<span class="mes-badge ' + badgeCls + '">' + badgeTxt + '</span>' +
@@ -3183,8 +3418,707 @@ document.getElementById('notif-modal-overlay').addEventListener('click', functio
   if (e.target === this) cerrarNotifModal();
 });
 
+/* ════════════════════════════════════════════════════════════════════════════
+   NUBE (Supabase)
+   Los deudores se guardan en la misma cuenta y la misma tabla que MotoContable
+   (mc_registros, coleccion 'deudores'), con su seguridad (RLS) y su historial.
+   localStorage es la copia local. La "sombra" guarda, por deudor, la ultima version
+   confirmada por la nube; lo que difiere de ella es un cambio pendiente y se envia
+   con mc_push, que no deja que una version vieja pise una nueva (la que pierde
+   queda en mc_historial). Ver README.md.
+   ════════════════════════════════════════════════════════════════════════════ */
+const SUPA_URL = 'https://llyovzgwdqoeunvyczcy.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxseW92emd3ZHFvZXVudnljemN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0MzUzNjcsImV4cCI6MjEwNjAxMTM2N30.g1DgUdTGPHDz8HEI1Kgv4SOJ13zyOwOfcAp8Ak2BRGQ';
+// Direccion publicada (para el enlace de "olvide mi contrasena" si abres el archivo local)
+const DD_URL_PUBLICA = 'https://samuelmonsalve256-ai.github.io/DEUDORES/';
+const DD_COL = 'deudores';
+const DD_SYNC_KEY = 'dd_sync_v1';
+const DD_ESPERA_GUARDADO = 1200;   // agrupa cambios seguidos
+const DD_ESPERA_MAXIMA   = 5000;   // pero nunca espera mas de esto
+
+let _supa = null;
+try {
+  _supa = supabase.createClient(SUPA_URL, SUPA_KEY, {
+    auth: { persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, flowType:'implicit',
+            storageKey:'mc-auth' }   // misma sesion que MotoContable
+  });
+} catch(e){ console.log('Supabase no disponible:', e); }
+
+let _ddSesion = null, _ddEstado = null, _ddSync = null, _ddRepetir = false;
+let _ddTimer = null, _ddPrimerCambio = 0, _ddTimerRemoto = null, _ddReintento = null;
+let _ddFallos = 0, _ddCanal = null, _ddUltimoOk = null;
+let _ddEventosListos = false, _ddMigrando = false, _ddEstadoListo = false;
+let _ddRecuperacion = /type=recovery/.test(location.hash);
+
+const ddDeviceId = (()=>{
+  try {
+    let d = localStorage.getItem('mc_device_id');
+    if(!d){
+      const ua = navigator.userAgent;
+      const tipo = /iPhone/.test(ua)?'iphone':/iPad/.test(ua)?'ipad':/Android/.test(ua)?'android':/Mac/.test(ua)?'mac':/Windows/.test(ua)?'windows':'web';
+      d = tipo + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+      localStorage.setItem('mc_device_id', d);
+    }
+    return d;
+  } catch(e){ return 'web_' + Math.random().toString(36).slice(2,8); }
+})();
+
+// JSON con claves ordenadas: el mismo contenido da el mismo texto
+function ddCanon(v){
+  return JSON.stringify(v, (k,val)=>{
+    if(val && typeof val==='object' && !Array.isArray(val)){
+      const o={}; Object.keys(val).sort().forEach(key=>{ o[key]=val[key]; }); return o;
+    }
+    return val;
+  });
+}
+function ddHash(v){
+  const s = ddCanon(v);
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for(let i=0;i<s.length;i++){
+    const ch = s.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1>>>16), 2246822507) ^ Math.imul(h2 ^ (h2>>>13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2>>>16), 2246822507) ^ Math.imul(h1 ^ (h1>>>13), 3266489909);
+  return (h2>>>0).toString(36) + (h1>>>0).toString(36) + ':' + s.length;
+}
+
+function ddCargarEstado(){
+  try { _ddEstado = JSON.parse(localStorage.getItem(DD_SYNC_KEY) || 'null'); } catch(e){ _ddEstado = null; }
+  return _ddEstado;
+}
+function ddGuardarEstado(){
+  try { localStorage.setItem(DD_SYNC_KEY, JSON.stringify(_ddEstado)); return true; }
+  catch(e){ console.log('No se pudo guardar el estado de sincronizacion:', e); return false; }
+}
+function ddMapaLocal(){
+  const m = new Map();
+  debtors.forEach(o=>{ if(o && o.id) m.set(String(o.id), o); });
+  return m;
+}
+
+// Cambios pendientes = diferencias entre los datos locales y la sombra
+function ddCalcularPendientes(){
+  const cambios = [];
+  if(!_ddEstado) return cambios;
+  const sombra = _ddEstado.sombra;
+  const mapa = ddMapaLocal();
+  mapa.forEach((obj,id)=>{
+    const sh = sombra[id];
+    const h  = ddHash(obj);
+    if(!sh || sh.d || sh.h!==h) cambios.push({coleccion:DD_COL, id, data:obj, base_version: sh ? sh.v : null, _h:h});
+  });
+  Object.keys(sombra).forEach(id=>{
+    const sh = sombra[id];
+    if(!sh.d && !mapa.has(id)) cambios.push({coleccion:DD_COL, id, eliminar:true, base_version:sh.v});
+  });
+  return cambios;
+}
+
+// Si de golpe desaparece mas de la mitad de los deudores, se pregunta antes de eliminar
+function ddBorradosMasivos(cambios){
+  const vivos = Object.values(_ddEstado.sombra).filter(sh=>!sh.d).length;
+  const borrados = cambios.filter(c=>c.eliminar).length;
+  return borrados>=3 && borrados > vivos/2 ? {cantidad:borrados, total:vivos} : null;
+}
+
+// Orden de creacion en la nube; lo aun no confirmado va al final (es lo mas nuevo)
+function ddOrdenar(){
+  const sombra = _ddEstado.sombra;
+  const fecha = o=>{ const sh = sombra[o.id]; return sh && sh.c!=null ? sh.c : Infinity; };
+  debtors.sort((a,b)=>{ const fa=fecha(a), fb=fecha(b); return fa===fb ? 0 : (fa<fb ? -1 : 1); });
+}
+
+// Aplica un deudor que viene de la nube. Si tiene un cambio local pendiente no se toca:
+// ese cambio se enviara y mc_push resolvera el conflicto. Devuelve true si cambio algo local.
+function ddAplicarRemota(fila, forzar){
+  if(fila.coleccion !== DD_COL) return false;
+  const id = String(fila.id);
+  if(!fila.eliminado && fila.data && !fila.data.id) fila.data.id = id;
+  const sombra = _ddEstado.sombra, sh = sombra[id];
+  const idx = idxPorId(id);
+  const local = idx>=0 ? debtors[idx] : null;
+  const c = fila.created_at ? Date.parse(fila.created_at) : (sh && sh.c);
+  const hRemoto = fila.eliminado ? null : ddHash(fila.data);
+  const nuevaSombra = fila.eliminado ? {v:fila.version, d:1, c} : {v:fila.version, h:hRemoto, c};
+
+  if(fila.eliminado ? !local : (local && ddHash(local)===hRemoto)){ sombra[id] = nuevaSombra; return false; }
+  const pendiente = sh ? (sh.d ? !!local : (!local || ddHash(local)!==sh.h)) : !!local;
+  if(pendiente && !forzar) return false;
+
+  if(fila.eliminado){ if(idx>=0) debtors.splice(idx,1); }
+  else if(idx>=0)   debtors[idx] = fila.data;
+  else              debtors.push(fila.data);
+  sombra[id] = nuevaSombra;
+  return true;
+}
+
+// Trae de la nube todo lo que cambio despues del cursor
+async function ddTraerCambios(desde, forzar){
+  let cursor = desde, tocado = false, insertado = false;
+  while(true){
+    const {data, error} = await _supa.rpc('mc_pull', {p_desde:cursor, p_limite:500});
+    if(error) throw error;
+    const filas = data || [];
+    filas.forEach(f=>{
+      if(f.coleccion === DD_COL){
+        const existia = idxPorId(String(f.id)) >= 0;
+        if(ddAplicarRemota(f, !!(forzar && forzar(f)))){
+          tocado = true;
+          if(!existia && !f.eliminado) insertado = true;
+        }
+      }
+      if(f.seq > cursor) cursor = f.seq;
+    });
+    if(filas.length < 500) break;
+  }
+  if(insertado) ddOrdenar();
+  if(tocado) guardarLocal();
+  _ddEstado.cursor = cursor;
+  ddGuardarEstado();
+  if(tocado) ddRefrescarUI();
+  return tocado;
+}
+
+function ddLotes(cambios){
+  const lotes = []; let actual = [], tam = 0;
+  cambios.forEach(c=>{
+    const t = c.data ? JSON.stringify(c.data).length : 100;
+    if(actual.length && (actual.length>=100 || tam+t > 1500000)){ lotes.push(actual); actual=[]; tam=0; }
+    actual.push(c); tam += t;
+  });
+  if(actual.length) lotes.push(actual);
+  return lotes;
+}
+const ddSinHash = c=>{ const {_h, ...resto} = c; return resto; };
+
+// Envia los cambios pendientes
+async function ddEnviarPendientes(){
+  let cambios = ddCalcularPendientes();
+  if(!cambios.length) return;
+
+  const masivo = ddBorradosMasivos(cambios);
+  if(masivo){
+    const ok = await ddPreguntar({
+      titulo: 'Confirmar eliminacion',
+      texto:  `Se van a eliminar ${masivo.cantidad} de tus ${masivo.total} deudores de la nube, y por lo tanto de todos tus dispositivos.\n\nSi esto no es lo que querias, pulsa "Recuperar" y se volveran a descargar de la nube. Aunque confirmes, quedaran guardados en el historial.`,
+      si: 'Si, eliminar', no: 'Recuperar', peligro: true
+    });
+    if(!ok){
+      const recuperar = new Set(cambios.filter(c=>c.eliminar).map(c=>c.id));
+      await ddTraerCambios(0, f=>recuperar.has(String(f.id)));
+      cambios = ddCalcularPendientes().filter(c=>!(c.eliminar && recuperar.has(c.id)));
+      if(!cambios.length) return;
+    }
+  }
+
+  const sombra = _ddEstado.sombra;
+  let tocado = false, conflictos = 0;
+  for(const lote of ddLotes(cambios)){
+    const enviado = {};
+    lote.forEach(c=>{ enviado[c.id] = c; });
+    const {data, error} = await _supa.rpc('mc_push', {p_cambios: lote.map(ddSinHash), p_device: ddDeviceId});
+    if(error) throw error;
+    (data.aplicados||[]).forEach(a=>{
+      const c = enviado[a.id], prev = sombra[a.id] || {};
+      if(a.resultado==='inexistente') delete sombra[a.id];
+      else if(a.eliminado) sombra[a.id] = {v:a.version, d:1, c:prev.c};
+      // Hash de lo ENVIADO: si se edito otra vez mientras tanto, sigue pendiente
+      else sombra[a.id] = {v:a.version, h:c._h, c: prev.c!=null ? prev.c : Date.now()};
+    });
+    const aHistorial = [];
+    (data.conflictos||[]).forEach(f=>{
+      conflictos++;
+      const c = enviado[f.id];
+      const i = idxPorId(String(f.id)), actual = i>=0 ? debtors[i] : null;
+      if(actual && c && !c.eliminar && ddHash(actual)!==c._h) aHistorial.push({coleccion:DD_COL, id:String(f.id), data:actual, base_version:null});
+      if(ddAplicarRemota(f, true)) tocado = true;
+    });
+    if(aHistorial.length){
+      const r = await _supa.rpc('mc_push', {p_cambios: aHistorial, p_device: ddDeviceId});
+      if(r.error) throw r.error;
+    }
+    ddGuardarEstado();
+  }
+  if(tocado){ ddOrdenar(); guardarLocal(); }
+  ddGuardarEstado();
+  if(tocado) ddRefrescarUI();
+  if(conflictos) showToast(`${conflictos} cambio(s) hechos al mismo tiempo en otro dispositivo: se conservo la version mas reciente y la tuya quedo en el historial`, 6000);
+}
+
+// Compara la lista de la nube (sin datos) con la sombra; si algo no coincide se pide todo
+async function ddReconciliar(){
+  const {data, error} = await _supa.rpc('mc_indice');
+  if(error) throw error;
+  const sombra = _ddEstado.sombra, enNube = new Set();
+  let difiere = false;
+  (data||[]).forEach(r=>{
+    if(r.coleccion !== DD_COL) return;
+    const id = String(r.id); enNube.add(id);
+    const sh = sombra[id];
+    if(!sh || sh.v!==r.version || !!sh.d!==!!r.eliminado) difiere = true;
+  });
+  Object.keys(sombra).forEach(id=>{ if(!enNube.has(id)) delete sombra[id]; });
+  return difiere;
+}
+
+// Ciclo completo: traer de la nube y enviar lo pendiente. Nunca corren dos a la vez.
+function ddSincronizar(motivo, opciones){
+  if(!_supa || !_ddSesion || !_ddEstadoListo || !_ddEstado || _ddMigrando){ ddActualizarIndicador(); return Promise.resolve(false); }
+  if(_ddSync){ _ddRepetir = true; return _ddSync; }
+  if(!navigator.onLine){ ddActualizarIndicador(); return Promise.resolve(false); }
+  _ddSync = (async ()=>{
+    let ok = false;
+    try {
+      ddActualizarIndicador();
+      if(opciones && opciones.reconciliar && await ddReconciliar()) await ddTraerCambios(0);
+      else await ddTraerCambios(_ddEstado.cursor || 0);
+      await ddEnviarPendientes();
+      _ddFallos = 0; _ddUltimoOk = new Date(); ok = true;
+      clearTimeout(_ddReintento); _ddReintento = null;
+    } catch(e){
+      console.log('Error de sincronizacion ('+motivo+'):', e);
+      _ddFallos++;
+      if(_ddFallos===1 && ddCalcularPendientes().length)
+        showToast(/coleccion_check/.test((e&&e.message)||'')
+          ? 'Falta un paso en Supabase (ver README). Tus datos siguen a salvo en este dispositivo'
+          : 'No se pudo guardar en la nube. Tus datos estan a salvo en este dispositivo y se reintentara solo', 6000);
+      if(e && (e.code==='42501' || e.status===401 || /JWT|sesi/i.test(e.message||''))){
+        const {data} = await _supa.auth.getSession();
+        if(!data || !data.session){ _ddSesion = null; _ddEstadoListo = false; ddMostrarLogin('login'); }
+      }
+      clearTimeout(_ddReintento);
+      _ddReintento = setTimeout(()=>ddSincronizar('reintento'), Math.min(60000, 5000 * Math.pow(2, _ddFallos-1)));
+    } finally {
+      _ddSync = null;
+      ddActualizarIndicador();
+      if(_ddRepetir){ _ddRepetir = false; setTimeout(()=>ddSincronizar('repetir'), 0); }
+    }
+    return ok;
+  })();
+  return _ddSync;
+}
+
+// Lo llama persist(). Agrupa cambios seguidos.
+function ddMarcarCambios(){
+  const ahora = Date.now();
+  if(!_ddPrimerCambio) _ddPrimerCambio = ahora;
+  clearTimeout(_ddTimer);
+  _ddTimer = setTimeout(()=>ddGuardarAhora('guardado'),
+    Math.max(0, Math.min(DD_ESPERA_GUARDADO, _ddPrimerCambio + DD_ESPERA_MAXIMA - ahora)));
+  ddActualizarIndicador();
+}
+function ddGuardarAhora(motivo){
+  clearTimeout(_ddTimer); _ddTimer = null; _ddPrimerCambio = 0;
+  if(_ddSesion && _ddEstadoListo) return ddSincronizar(motivo || 'guardado');
+  ddActualizarIndicador();
+  return Promise.resolve(false);
+}
+
+// Ultimo intento al cerrar la pagina (el navegador lo termina aunque la pestana se cierre)
+function ddEnvioDeEmergencia(){
+  try {
+    if(!_ddSesion || !_ddEstadoListo || !_ddEstado || _ddMigrando) return;
+    let cambios = ddCalcularPendientes();
+    if(!cambios.length) return;
+    if(ddBorradosMasivos(cambios)) cambios = cambios.filter(c=>!c.eliminar);
+    const lote = []; let tam = 200;
+    for(const c of cambios){
+      const t = JSON.stringify(ddSinHash(c)).length;
+      if(tam + t > 60000) continue;
+      lote.push(ddSinHash(c)); tam += t;
+    }
+    if(!lote.length) return;
+    fetch(SUPA_URL + '/rest/v1/rpc/mc_push', {
+      method:'POST', keepalive:true,
+      headers:{'Content-Type':'application/json', apikey:SUPA_KEY, Authorization:'Bearer '+_ddSesion.access_token},
+      body: JSON.stringify({p_cambios:lote, p_device:ddDeviceId})
+    }).catch(()=>{});
+  } catch(e){}
+}
+
+// ── Estado visible ──────────────────────────────────────────────────────────
+function ddIndicador(estado, n){
+  const ind = document.getElementById('dd-sync');
+  if(!ind) return;
+  const cambios = n===1 ? '1 cambio' : n+' cambios';
+  const txt = {
+    'guardando':    'Guardando…',
+    'guardado':     'Guardado en la nube',
+    'error':        'Error al guardar — toca para reintentar',
+    'sin-nube':     'Sin conexion con la nube',
+    'sin-conexion': n ? 'Sin internet — ' + cambios + ' por subir' : 'Sin internet',
+    'sin-sesion':   'Sin sesion — solo en este dispositivo',
+    'cargando':     'Cargando…',
+  }[estado] || 'Nube';
+  ind.textContent = txt; ind.dataset.estado = estado;
+}
+function ddActualizarIndicador(){
+  let n = 0;
+  try { n = _ddEstado && _ddEstadoListo ? ddCalcularPendientes().length : 0; } catch(e){}
+  if(!_supa)                              ddIndicador('sin-nube', n);
+  else if(!_ddSesion || !_ddEstadoListo)  ddIndicador(_ddMigrando ? 'cargando' : 'sin-sesion', n);
+  else if(!navigator.onLine)              ddIndicador('sin-conexion', n);
+  else if(_ddFallos && !_ddSync)          ddIndicador(n ? 'error' : 'sin-nube', n);
+  else if(n || _ddSync)                   ddIndicador('guardando', n);
+  else                                    ddIndicador('guardado');
+  ddActualizarCuenta(n);
+}
+function ddActualizarCuenta(n){
+  const info = document.getElementById('dd-cuenta-info');
+  const btn  = document.getElementById('dd-btn-sesion');
+  const conectado = _ddSesion && _ddEstadoListo;
+  if(btn) btn.textContent = conectado ? 'Cerrar sesion' : 'Iniciar sesion';
+  if(!info) return;
+  if(!conectado){
+    info.innerHTML = '<strong>No has iniciado sesion.</strong><br>Tus deudores se guardan solo en este dispositivo. Inicia sesion para guardarlos en la nube y no perderlos nunca.';
+    return;
+  }
+  const hora = _ddUltimoOk ? _ddUltimoOk.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'}) : '—';
+  info.innerHTML = 'Conectado como <strong></strong><br>(la misma cuenta de MotoContable)<br>' +
+    'Deudores en la nube: <strong>' + debtors.length + '</strong><br>' +
+    'Ultima sincronizacion: ' + hora + '<br>' +
+    'Cambios pendientes de subir: <strong>' + (n||0) + '</strong>';
+  info.querySelector('strong').textContent = (_ddSesion.user && _ddSesion.user.email) || '';
+}
+
+// Vuelve a dibujar con los datos nuevos que llegaron de la nube
+function ddRefrescarUI(){
+  renderList();
+  if(currentTab === 'analisis') renderAnalisis();
+  ddActualizarIndicador();
+}
+
+// ── Ventana de pregunta ─────────────────────────────────────────────────────
+function ddPreguntar({titulo, texto, si, no, peligro}){
+  return new Promise(res=>{
+    const ov = document.getElementById('dd-pregunta');
+    document.getElementById('dd-pregunta-titulo').textContent = titulo;
+    document.getElementById('dd-pregunta-texto').textContent  = texto;
+    const bSi = document.getElementById('dd-pregunta-si'), bNo = document.getElementById('dd-pregunta-no');
+    bSi.textContent = si || 'Aceptar';
+    bSi.style.background = peligro ? 'var(--accent2)' : '';
+    bNo.textContent = no || 'Cancelar';
+    bNo.style.display = no===null ? 'none' : '';
+    const cerrar = v=>{ ov.classList.remove('open'); res(v); };
+    bSi.onclick = ()=>cerrar(true);
+    bNo.onclick = ()=>cerrar(false);
+    ov.classList.add('open');
+  });
+}
+
+// ── Inicio de sesion (la misma cuenta de MotoContable) ──────────────────────
+let _ddModoLogin = 'login';
+function ddMostrarLogin(modo){
+  _ddModoLogin = modo || 'login';
+  const nueva = _ddModoLogin==='nueva', cargando = _ddModoLogin==='cargando';
+  document.getElementById('dd-login-titulo').textContent =
+    nueva ? 'Nueva contrasena' : cargando ? 'Sincronizando tus deudores…' : 'Inicia sesion';
+  document.getElementById('dd-login-sub').textContent =
+    nueva ? 'Escribe tu nueva contrasena.' :
+    cargando ? 'Estamos uniendo los deudores de este dispositivo con la nube. No cierres la pagina.' :
+    'Usa la misma cuenta de MotoContable. Tus deudores se guardaran en la nube y los veras en cualquier dispositivo.';
+  document.getElementById('dd-login-form').style.display    = cargando ? 'none' : '';
+  document.getElementById('dd-login-email-g').style.display = nueva ? 'none' : '';
+  document.getElementById('dd-login-extra').style.display   = (nueva||cargando) ? 'none' : 'flex';
+  const pass = document.getElementById('dd-login-pass');
+  pass.value = ''; pass.autocomplete = nueva ? 'new-password' : 'current-password';
+  document.getElementById('dd-login-email').required = !nueva;
+  document.getElementById('dd-login-btn').textContent = nueva ? 'Guardar contrasena' : 'Iniciar sesion';
+  ddLoginMensaje('');
+  document.getElementById('dd-login').classList.add('open');
+}
+function ddOcultarLogin(){ document.getElementById('dd-login').classList.remove('open'); }
+function ddLoginMensaje(txt, error){
+  const m = document.getElementById('dd-login-msg');
+  m.textContent = txt; m.style.display = txt ? 'block' : 'none';
+  m.style.color = error ? 'var(--accent2)' : 'var(--text2)';
+}
+async function ddLoginEnviar(){
+  if(!_supa){ ddLoginMensaje('No hay conexion con la nube. Revisa tu internet y recarga la pagina.', true); return; }
+  const btn = document.getElementById('dd-login-btn');
+  const email = document.getElementById('dd-login-email').value.trim();
+  const pass  = document.getElementById('dd-login-pass').value;
+  btn.disabled = true;
+  try {
+    if(_ddModoLogin==='nueva'){
+      if(pass.length < 8){ ddLoginMensaje('La contrasena debe tener al menos 8 caracteres.', true); return; }
+      const {error} = await _supa.auth.updateUser({password: pass});
+      if(error){ ddLoginMensaje('No se pudo cambiar la contrasena: ' + error.message, true); return; }
+      _ddRecuperacion = false;
+      showToast('Contrasena actualizada');
+      ddOcultarLogin();
+      const {data} = await _supa.auth.getSession();
+      if(data && data.session && !_ddEstadoListo) await ddConSesion(data.session);
+      return;
+    }
+    ddLoginMensaje('Entrando…');
+    const {data, error} = await _supa.auth.signInWithPassword({email, password: pass});
+    if(error){
+      ddLoginMensaje(/invalid/i.test(error.message) ? 'Correo o contrasena incorrectos.' :
+        (!navigator.onLine || /fetch|network/i.test(error.message)) ? 'No se pudo conectar con la nube. Revisa tu internet e intentalo de nuevo.' :
+        'No se pudo iniciar sesion: ' + error.message, true);
+      return;
+    }
+    await ddConSesion(data.session);
+  } catch(e){
+    ddLoginMensaje('No se pudo conectar. Revisa tu internet e intentalo de nuevo.', true);
+  } finally { btn.disabled = false; }
+}
+async function ddLoginOlvide(){
+  const email = document.getElementById('dd-login-email').value.trim();
+  if(!email){ ddLoginMensaje('Escribe tu correo y vuelve a pulsar "¿Olvidaste tu contrasena?".', true); return; }
+  if(!_supa){ ddLoginMensaje('No hay conexion con la nube.', true); return; }
+  const destino = location.protocol==='file:' ? DD_URL_PUBLICA : location.origin + location.pathname;
+  const {error} = await _supa.auth.resetPasswordForEmail(email, {redirectTo: destino});
+  ddLoginMensaje(error ? 'No se pudo enviar el correo: ' + error.message
+    : 'Si el correo esta registrado, te llegara un enlace para crear una nueva contrasena. Revisa tambien la carpeta de spam.', !!error);
+}
+function ddLoginSinSesion(){
+  ddOcultarLogin();
+  ddActualizarIndicador();
+  showToast('Sin sesion: tus deudores quedan solo en este dispositivo', 4000);
+}
+function ddBotonSesion(){
+  if(_ddSesion && _ddEstadoListo) ddCerrarSesion();
+  else { ddCerrarCuenta(); ddMostrarLogin('login'); }
+}
+async function ddCerrarSesion(){
+  if(navigator.onLine) await ddGuardarAhora('cerrar-sesion');
+  const n = _ddEstado ? ddCalcularPendientes().length : 0;
+  if(n){
+    await ddPreguntar({titulo:'Hay cambios sin subir',
+      texto:`Tienes ${n} cambio(s) que todavia no llegan a la nube. Conectate a internet y espera a que diga "Guardado en la nube" antes de cerrar sesion.`,
+      si:'Entendido', no:null});
+    return;
+  }
+  const ok = await ddPreguntar({titulo:'Cerrar sesion',
+    texto:'Tus deudores estan guardados en la nube. Se cerrara la sesion tambien en MotoContable en este navegador.',
+    si:'Cerrar sesion', no:'Cancelar'});
+  if(!ok) return;
+  if(_ddCanal){ try{ _supa.removeChannel(_ddCanal); }catch(e){} _ddCanal = null; }
+  await _supa.auth.signOut();
+  _ddSesion = null; _ddEstadoListo = false;
+  ddCerrarCuenta();
+  ddActualizarIndicador();
+  ddMostrarLogin('login');
+}
+
+// ── Union del dispositivo con la nube ───────────────────────────────────────
+// Primera vez que esta cuenta entra en este navegador: se sube lo que solo existe aqui y
+// lo que difiere de la nube se guarda en mc_historial (la nube queda como principal).
+async function ddTraerTodo(){
+  const filas = []; let cursor = 0;
+  while(true){
+    const {data, error} = await _supa.rpc('mc_pull', {p_desde:cursor, p_limite:1000});
+    if(error) throw error;
+    (data||[]).forEach(f=>{ if(f.coleccion===DD_COL) filas.push(f); if(f.seq>cursor) cursor=f.seq; });
+    if(!data || data.length < 1000) break;
+  }
+  return {filas, cursor};
+}
+function ddMensajeError(e){
+  const m = (e && e.message) || 'error de conexion';
+  return /coleccion_check/.test(m) ? 'falta ejecutar el archivo supabase/deudores.sql en Supabase, ver README' : m;
+}
+async function ddMigrarDispositivo(uid){
+  _ddMigrando = true;
+  ddMostrarLogin('cargando');
+  try {
+    const {filas} = await ddTraerTodo();
+    const nube = new Map(filas.map(f=>[String(f.id), f]));
+    const cambios = [];
+    debtors.forEach(item=>{
+      if(!item || !item.id) return;
+      const f = nube.get(String(item.id));
+      if(f && !f.eliminado && ddHash(f.data)===ddHash(item)) return;
+      cambios.push({coleccion:DD_COL, id:String(item.id), data:item, modo:'migracion'});
+    });
+    let subidos = 0, historial = 0;
+    for(const lote of ddLotes(cambios)){
+      const {data, error} = await _supa.rpc('mc_push', {p_cambios:lote, p_device:ddDeviceId});
+      if(error) throw error;
+      subidos   += (data.aplicados||[]).filter(a=>a.resultado==='creado').length;
+      historial += (data.conflictos||[]).length;
+    }
+    // La copia local queda exactamente igual a la nube
+    const final = await ddTraerTodo();
+    const sombra = {};
+    debtors = final.filas.filter(f=>!f.eliminado)
+      .sort((a,b)=>Date.parse(a.created_at)-Date.parse(b.created_at))
+      .map(f=>f.data);
+    guardarLocal();
+    final.filas.forEach(f=>{
+      sombra[String(f.id)] = f.eliminado ? {v:f.version, d:1, c:Date.parse(f.created_at)}
+                                         : {v:f.version, h:ddHash(f.data), c:Date.parse(f.created_at)};
+    });
+    _ddEstado = {userId: uid, cursor: final.cursor, sombra};
+    ddGuardarEstado();
+    _ddUltimoOk = new Date();
+    _ddMigrando = false;
+    ddOcultarLogin();
+    ddRefrescarUI();
+    if(subidos || historial){
+      await ddPreguntar({titulo:'Deudores unidos con la nube',
+        texto:`Subidos desde este dispositivo: ${subidos}\nGuardados en el historial (la nube tenia otra version): ${historial}\n\nDesde ahora todo se guarda solo en la nube y lo veras en tus otros dispositivos.`,
+        si:'Entendido', no:null});
+    } else showToast('Deudores sincronizados con la nube');
+    return true;
+  } catch(e){
+    _ddMigrando = false;
+    console.log('Error al unir el dispositivo con la nube:', e);
+    ddMostrarLogin('login');
+    ddLoginMensaje('No se pudieron sincronizar tus deudores (' + ddMensajeError(e) + '). Tus datos de este dispositivo siguen intactos. Puedes continuar sin sesion e intentarlo mas tarde.', true);
+    return false;
+  }
+}
+
+// ── Arranque ────────────────────────────────────────────────────────────────
+async function ddConSesion(session){
+  _ddSesion = session;
+  const uid = session.user.id;
+  ddCargarEstado();
+  if(!_ddEstado || _ddEstado.userId !== uid){
+    if(!await ddMigrarDispositivo(uid)) return;
+  } else {
+    ddOcultarLogin();
+  }
+  _ddEstadoListo = true;
+  ddActualizarIndicador();
+  ddSuscribirTiempoReal(uid);
+  ddRegistrarEventos();
+  if(_ddRecuperacion) ddMostrarLogin('nueva');
+  await ddSincronizar('inicio', {reconciliar:true});
+}
+function ddSuscribirTiempoReal(uid){
+  if(_ddCanal || !_supa.channel) return;
+  try {
+    _ddCanal = _supa.channel('dd-registros-' + ddDeviceId)
+      .on('postgres_changes', {event:'*', schema:'public', table:'mc_registros', filter:'user_id=eq.'+uid},
+          p=>{
+            const col = (p && (p.new && p.new.coleccion)) || (p && p.old && p.old.coleccion);
+            if(col && col !== DD_COL) return;
+            clearTimeout(_ddTimerRemoto); _ddTimerRemoto = setTimeout(()=>ddSincronizar('tiempo-real'), 400);
+          })
+      .subscribe();
+  } catch(e){ console.log('Tiempo real no disponible:', e); }
+}
+function ddRegistrarEventos(){
+  if(_ddEventosListos) return;
+  _ddEventosListos = true;
+  window.addEventListener('online',  ()=>{ _ddFallos = 0; ddGuardarAhora('online'); });
+  window.addEventListener('offline', ()=>ddActualizarIndicador());
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.visibilityState==='hidden') ddGuardarAhora('oculta');
+    else ddSincronizar('visible');
+  });
+  window.addEventListener('pagehide', ddEnvioDeEmergencia);
+  window.addEventListener('pageshow', e=>{ if(e.persisted) ddSincronizar('pageshow'); });
+  setInterval(()=>{ if(document.visibilityState==='visible') ddSincronizar('periodico'); }, 60000);
+}
+// Si se cierra la pestana con cambios que no llegaron a la nube, el navegador pregunta
+window.addEventListener('beforeunload', e=>{
+  try {
+    if(navigator.onLine && _ddSesion && _ddEstadoListo && ddCalcularPendientes().length){ ddEnvioDeEmergencia(); e.preventDefault(); e.returnValue = ''; }
+  } catch(err){}
+});
+async function ddIniciar(){
+  try { if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch(e){}
+  ddCargarEstado();
+  if(!_supa){ ddActualizarIndicador(); return; }
+  ddIndicador('cargando');
+  _supa.auth.onAuthStateChange((evento, session)=>{
+    if(session) _ddSesion = session;
+    if(evento==='PASSWORD_RECOVERY'){ _ddRecuperacion = true; setTimeout(()=>{ if(!_ddMigrando) ddMostrarLogin('nueva'); }, 0); }
+    if(evento==='SIGNED_OUT' && _ddSesion){
+      _ddSesion = null; _ddEstadoListo = false;
+      setTimeout(()=>{ ddActualizarIndicador(); ddMostrarLogin('login'); }, 0);
+    }
+  });
+  let session = null;
+  try { session = (await _supa.auth.getSession()).data.session; } catch(e){}
+  if(!session){ ddActualizarIndicador(); ddMostrarLogin('login'); return; }
+  await ddConSesion(session);
+}
+async function ddSincronizarAhora(){
+  if(!_supa){ showToast('Sin conexion con la nube'); return; }
+  if(!_ddSesion || !_ddEstadoListo){ ddCerrarCuenta(); ddMostrarLogin('login'); return; }
+  const ok = await ddGuardarAhora('manual');
+  showToast(ok ? '✓ Deudores guardados en la nube' :
+        !navigator.onLine ? 'Sin internet: los cambios se enviaran al volver la conexion' :
+        'No se pudo sincronizar. Se reintentara automaticamente', 3500);
+}
+
+// ── Cuenta ──────────────────────────────────────────────────────────────────
+function ddAbrirCuenta(){
+  ddActualizarIndicador();
+  document.getElementById('dd-cuenta-overlay').classList.add('open');
+}
+function ddCerrarCuenta(){ document.getElementById('dd-cuenta-overlay').classList.remove('open'); }
+document.getElementById('dd-cuenta-overlay').addEventListener('click', function(e){ if(e.target === this) ddCerrarCuenta(); });
+
+// ── Recuperar versiones anteriores (mc_historial) ───────────────────────────
+let _ddHistorial = [];
+async function ddAbrirHistorial(){
+  const body = document.getElementById('dd-hist-body');
+  document.getElementById('dd-hist-overlay').classList.add('open');
+  if(!_supa || !_ddSesion || !_ddEstadoListo){
+    body.innerHTML = '<div class="dd-cuenta">Inicia sesion para ver el historial guardado en la nube.</div>';
+    return;
+  }
+  body.innerHTML = '<div style="color:var(--text3);font-size:13px">Cargando historial…</div>';
+  try {
+    const {data, error} = await _supa.from('mc_historial')
+      .select('hist_id,id,data,motivo,guardado_en')
+      .eq('coleccion', DD_COL).order('guardado_en', {ascending:false}).limit(100);
+    if(error) throw error;
+    _ddHistorial = (data||[]).filter(h=>esDeudorValido(h.data));
+    if(!_ddHistorial.length){
+      body.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:1rem 0">Todavia no hay versiones anteriores guardadas.</div>';
+      return;
+    }
+    const nombres = {edicion:'antes de editar', eliminacion:'eliminado', conflicto:'conflicto', migracion:'otro dispositivo'};
+    body.innerHTML = _ddHistorial.map((h,i)=>{
+      const d = h.data, total = calcInterest(d.monto, d.interes, d.fechaPrestamo, d.fechaPago);
+      const saldo = Math.max(0, total - totalAbonos(d));
+      const fecha = new Date(h.guardado_en).toLocaleString('es-CO', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'});
+      return '<div class="dd-hist-item"><div>' +
+        '<div class="dd-hist-name">' + esc(d.nombre) + '<span class="dd-hist-motivo ' + esc(h.motivo) + '">' + esc(nombres[h.motivo] || h.motivo) + '</span></div>' +
+        '<div class="dd-hist-sub">' + esc(fecha) + ' · ' + (d.abonos||[]).length + ' abonos · saldo ' + money(saldo) + '</div>' +
+        '</div><button class="btn-sm btn-success" onclick="ddRestaurarVersion(' + i + ')">Restaurar</button></div>';
+    }).join('');
+  } catch(e){
+    body.innerHTML = '<div class="dd-cuenta">No se pudo cargar el historial: ' + esc(ddMensajeError(e)) + '</div>';
+  }
+}
+function ddCerrarHistorial(){ document.getElementById('dd-hist-overlay').classList.remove('open'); }
+document.getElementById('dd-hist-overlay').addEventListener('click', function(e){ if(e.target === this) ddCerrarHistorial(); });
+
+async function ddRestaurarVersion(i){
+  const h = _ddHistorial[i];
+  if(!h) return;
+  const d = JSON.parse(JSON.stringify(h.data));
+  if(!d.id) d.id = String(h.id);
+  const idx = idxPorId(d.id);
+  const ok = await ddPreguntar({titulo:'Restaurar ' + d.nombre,
+    texto: idx>=0
+      ? 'Los datos actuales de este deudor se cambiaran por esta version. La version actual tambien quedara guardada en el historial, asi que puedes deshacerlo.'
+      : 'Este deudor volvera a aparecer en tu lista con los datos de esta version.',
+    si:'Restaurar', no:'Cancelar'});
+  if(!ok) return;
+  if(idx>=0) debtors[idx] = d; else debtors.push(d);
+  persist();
+  renderList();
+  ddCerrarHistorial();
+  showToast('Deudor restaurado: ' + d.nombre, 3500);
+}
+
 /* ======= INIT ======= */
+if (asignarIds(debtors)) guardarLocal();
 renderList();
+ddIniciar();
 setTimeout(function() {
   updateNotifBtn();
   // Auto-activar notificaciones si el usuario ya las activo antes
