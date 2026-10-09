@@ -2,7 +2,16 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Deudores">
+<meta name="format-detection" content="telephone=no">
+<link rel="apple-touch-icon" href="icono-180.png">
+<link rel="icon" type="image/png" href="icono-192.png">
+<link rel="manifest" href="manifest.webmanifest">
 <title>Mis Deudores</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
 <style>
@@ -728,6 +737,153 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 .dd-import-opt { display:flex; gap:10px; align-items:flex-start; text-align:left; font-size:13px; color:var(--text2); margin-bottom:8px; cursor:pointer; }
 .dd-import-opt input { margin-top:4px; accent-color:var(--accent); }
 </style>
+<style>
+/* ═══════════ ORDEN Y DISENO PARA IPHONE ═══════════ */
+html { -webkit-text-size-adjust:100%; }
+body { -webkit-tap-highlight-color:transparent; }
+.app { overflow-x:clip; }
+.top-header .brand { min-width:0; }
+.top-header .dd-sync { margin-left:auto; }
+.stat-sub { font-size:12px; color:var(--text2); margin-top:2px; }
+.chips { display:flex; gap:8px; }
+.chip-n { display:inline-block; min-width:20px; padding:0 6px; margin-left:4px; border-radius:20px; background:var(--surface3); color:var(--text2); font-size:11px; font-weight:700; text-align:center; }
+.filter-btn.active .chip-n { background:rgba(0,229,160,.15); color:var(--accent); }
+.debtor-left { min-width:0; flex:1; }
+.debtor-text { min-width:0; }
+.debtor-name, .debtor-concept { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.card-top { flex-wrap:wrap; }
+.debtor-prox { flex-basis:100%; margin:-4px 0 0 54px; }
+.cuota-left-wrap { min-width:0; flex:1; }
+body.tab-analisis .btn-add { display:none; }
+.prox { font-size:12px; color:var(--text2); }
+.prox-vence { color:var(--accent2); font-weight:600; }
+.prox-hoy   { color:var(--accent3); font-weight:600; }
+.prox-poco  { color:#ffaa44; font-weight:600; }
+.prox-ok    { color:var(--accent); }
+.amount-val.rojo { color:var(--accent2); }
+.card-top { position:relative; }
+.mini-progress { position:absolute; left:0; right:0; bottom:0; height:2px; background:var(--surface3); }
+.mini-progress div { height:100%; background:var(--accent); opacity:.7; }
+.debtor-card.open .mini-progress { display:none; }
+.debtor-card.estado-overdue { border-color:rgba(255,107,107,.25); }
+.cuota-right { display:flex; align-items:center; gap:10px; flex-shrink:0; }
+.info-mini { font-size:11px; color:var(--text2); font-weight:400; }
+.progress-head { display:flex; justify-content:space-between; font-size:12px; color:var(--text2); margin-bottom:6px; }
+.progress-head strong { color:var(--accent); }
+.vacio-txt { font-size:13px; color:var(--text3); padding:4px 0; }
+.mini-details { margin:4px 0 6px; }
+.mini-details summary { cursor:pointer; font-size:13px; color:var(--text2); padding:8px 2px; list-style:none; }
+.mini-details summary::-webkit-details-marker { display:none; }
+.mini-details summary::before { content:'▸ '; color:var(--text3); }
+.mini-details[open] summary::before { content:'▾ '; }
+.btn-principal { font-weight:600; }
+
+@media (max-width:600px) {
+  .app { padding:calc(env(safe-area-inset-top) + 14px) 16px calc(env(safe-area-inset-bottom) + 160px); }
+  .debtor-prox { margin:-2px 0 0 48px; }
+
+  /* Cabecera compacta: titulo + avisos + menu; la nube en una linea pequena debajo */
+  .top-header { display:grid; grid-template-columns:1fr auto; grid-template-areas:"brand acciones" "nube nube"; align-items:center; gap:8px 10px; margin-bottom:1.1rem; }
+  .top-header .brand { grid-area:brand; }
+  .top-header .header-actions { grid-area:acciones; gap:8px; flex-wrap:nowrap; }
+  .top-header .dd-sync { grid-area:nube; justify-self:start; margin:0; padding:5px 12px; font-size:12px; border-radius:20px; }
+  .logo-label { font-size:10px; }
+  .logo-title { font-size:23px; }
+  #btn-notif { padding:0; width:42px; height:42px; display:flex; align-items:center; justify-content:center; font-size:17px; }
+  #btn-notif .txt { display:none; }
+  .opts-trigger { width:42px; height:42px; padding:0 !important; }
+  .opts-menu { position:fixed !important; top:calc(env(safe-area-inset-top) + 66px) !important; left:12px !important; right:12px !important; width:auto !important; max-width:none !important; z-index:300 !important; }
+  .opts-item { padding:13px 14px !important; font-size:15px !important; }
+
+  /* Boton flotante "+ Nuevo" */
+  .btn-add { position:fixed; right:16px; bottom:calc(env(safe-area-inset-bottom) + 80px); z-index:150; padding:15px 20px; border-radius:30px; font-size:15px; box-shadow:0 10px 30px rgba(0,229,160,.35), 0 4px 12px rgba(0,0,0,.5); }
+  .btn-add span::before { content:'Nuevo'; }
+  .btn-add span { font-size:0; }
+  .btn-add span::before { font-size:15px; }
+
+  /* Pestanas abajo, como una app */
+  .tabs-nav { position:fixed; left:0; right:0; bottom:0; z-index:140; margin:0; border-radius:0; border:none; border-top:1px solid var(--border2); padding:6px 12px calc(env(safe-area-inset-bottom) + 6px); background:rgba(19,19,26,.94); -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px); }
+  .tab-btn { flex-direction:column; gap:2px; padding:8px 6px; font-size:12px; background:transparent !important; color:var(--text3); }
+  .tab-btn.active { color:var(--accent); }
+  .tab-icon { font-size:20px; }
+
+  /* Resumen: el total grande arriba y dos cuadros pequenos */
+  .summary { grid-template-columns:1fr 1fr; gap:10px; margin-bottom:1rem; }
+  .summary .stat-card:first-child { grid-column:1 / -1; }
+  .stat-card { padding:.85rem 1rem; }
+  .stat-label { font-size:10px; margin-bottom:3px; }
+  .stat-value { font-size:19px; white-space:nowrap; }
+  .summary .stat-card:first-child .stat-value { font-size:27px; }
+  .stat-sub { font-size:11px; }
+
+  /* Buscador y filtros que se deslizan de lado */
+  .toolbar { flex-direction:column; gap:10px; }
+  .search-box { min-width:0; width:100%; padding:12px 14px; }
+  .chips { overflow-x:auto; margin:0 -16px; padding:0 16px 2px; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+  .chips::-webkit-scrollbar { display:none; }
+  .filter-btn { flex-shrink:0; padding:9px 14px; border-radius:20px; white-space:nowrap; }
+  .notif-panel { margin-bottom:1rem; }
+  .notif-header { padding:.8rem 1rem; }
+  .notif-header-left { font-size:14px; }
+  .notif-item { padding:.7rem 1rem; }
+
+  /* Tarjeta de deudor compacta */
+  .list { gap:10px; }
+  .card-top { padding:.9rem 1rem 1rem; gap:10px; }
+  .debtor-left { gap:10px; }
+  .avatar { width:38px; height:38px; font-size:13px; }
+  .debtor-name { font-size:14.5px; }
+  .debtor-concept { font-size:11.5px; }
+  .debtor-right { flex-direction:column !important; align-items:flex-end !important; gap:5px !important; text-align:right; }
+  .amount-label { font-size:10px; }
+  .amount-val { font-size:15px; white-space:nowrap; }
+  .badge { font-size:9.5px; padding:2px 8px; }
+  .chevron { display:none; }
+  .card-body { padding:0 1rem 1rem; }
+  .info-grid { grid-template-columns:1fr 1fr; gap:8px; }
+  .info-item { padding:.6rem .75rem; }
+  .info-key { font-size:10px; }
+  .info-val { font-size:13px; word-break:break-word; }
+  .info-green .info-val, .info-red .info-val { font-size:16px; }
+  .alert-banner { font-size:12.5px; }
+  .cuota-row { padding:10px; }
+  .cuota-row .dias-pill { display:none; }
+  .cuota-dias-txt { padding-left:24px; }
+  .cuota-monto { font-size:13px; }
+  .cuota-check { width:24px; height:24px; }
+  .abono-del { font-size:22px; padding:4px 10px; }
+  .card-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .card-actions .btn-sm { padding:11px 8px; font-size:13px; text-align:center; }
+  .card-actions .btn-principal { grid-column:1 / -1; font-size:14px; padding:13px; background:rgba(0,229,160,.12) !important; }
+
+  /* Ventanas como hoja que sube desde abajo */
+  .overlay { align-items:flex-end; padding:0; }
+  .modal { width:100%; max-width:none !important; max-height:92vh; border-radius:20px 20px 0 0; padding:1.25rem 1rem calc(env(safe-area-inset-bottom) + 1rem); border-left:none; border-right:none; border-bottom:none; }
+  .modal-footer { position:sticky; bottom:calc(-1 * (env(safe-area-inset-bottom) + 1rem)); background:var(--surface); margin:1rem -1rem 0; padding:12px 1rem calc(env(safe-area-inset-bottom) + 12px); border-top:1px solid var(--border); }
+  .modal-footer .btn-save, .modal-footer .btn-cancel { flex:1; padding:13px; font-size:15px; }
+  .dd-login-overlay { align-items:center; padding:16px; }
+  .dd-login-overlay .modal { border-radius:var(--radius); border:1px solid var(--border2); max-height:none; }
+  /* iPhone hace zoom si el texto de un campo es menor de 16px */
+  input, select, textarea, .field input, .field select, .field textarea, .search-box, .date-selects select { font-size:16px !important; }
+
+  /* Analisis */
+  .an-kpi-grid { gap:10px; margin-bottom:1.5rem; }
+  .an-kpi { padding:.9rem 1rem; }
+  .an-kpi-val { font-size:15px !important; white-space:nowrap; letter-spacing:-.02em; }
+  .an-kpi-label { font-size:10px; }
+  .an-kpi-sub { font-size:11px; }
+  .an-chart { height:140px !important; gap:3px; }
+  .an-bar-label { font-size:9px; }
+  .an-chart-legend { justify-content:flex-start; }
+  .an-rank-item { padding:10px 12px; }
+  .an-rank-bar-wrap { width:56px; }
+  .an-tl-item { flex-wrap:wrap; row-gap:4px; }
+  .an-tl-fecha { min-width:0; }
+
+  .toast { bottom:calc(env(safe-area-inset-bottom) + 150px); }
+  .notif-queue-badge { bottom:calc(env(safe-area-inset-bottom) + 150px); right:16px; }
+}
+</style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
 </head>
@@ -735,13 +891,13 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 <div class="app">
 
   <div class="top-header">
-    <div>
+    <div class="brand">
       <div class="logo-label">Control de</div>
       <div class="logo-title">Mis Deudores</div>
     </div>
+    <button id="dd-sync" class="btn-notif dd-sync" data-estado="cargando" onclick="ddSincronizarAhora()" title="Estado de la nube">Cargando…</button>
     <div class="header-actions">
-      <button id="dd-sync" class="btn-notif dd-sync" data-estado="cargando" onclick="ddSincronizarAhora()" title="Estado de la nube">Cargando…</button>
-      <button id="btn-notif" class="btn-notif" onclick="solicitarPermiso()">🔕 Activar notificaciones</button>
+      <button id="btn-notif" class="btn-notif" onclick="solicitarPermiso()" title="Notificaciones"><span class="ico">🔕</span><span class="txt"> Activar notificaciones</span></button>
 
       <!-- Menu opciones avanzadas (oculto) -->
       <div class="opts-wrap">
@@ -771,9 +927,9 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
       <!-- Input oculto para cargar backup -->
       <input type="file" id="input-backup" accept=".json" style="display:none" onchange="cargarBackup(event)">
 
-      <button class="btn-add" onclick="openModal()">
+      <button class="btn-add" onclick="openModal()" aria-label="Nuevo deudor">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Nuevo deudor
+        <span>Nuevo deudor</span>
       </button>
     </div>
   </div>
@@ -797,21 +953,24 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
       <div class="stat-value green" id="s-total">$0.00</div>
     </div>
     <div class="stat-card red">
-      <div class="stat-label">Total con intereses</div>
-      <div class="stat-value red" id="s-intereses">$0.00</div>
+      <div class="stat-label">Vencido sin pagar</div>
+      <div class="stat-value red" id="s-vencido">$0</div>
     </div>
     <div class="stat-card yellow">
       <div class="stat-label">Deudores activos</div>
       <div class="stat-value yellow" id="s-count">0</div>
+      <div class="stat-sub" id="s-atrasados"></div>
     </div>
   </div>
 
   <div class="toolbar">
-    <input class="search-box" type="text" id="search" placeholder="Buscar por nombre o concepto..." oninput="renderList()">
-    <button class="filter-btn active" onclick="setFilter('all',this)">Todos</button>
-    <button class="filter-btn" onclick="setFilter('pending',this)">Pendiente</button>
-    <button class="filter-btn" onclick="setFilter('overdue',this)">Vencido</button>
-    <button class="filter-btn" onclick="setFilter('paid',this)">Pagado</button>
+    <input class="search-box" type="search" id="search" placeholder="Buscar por nombre o concepto..." oninput="renderList()" autocomplete="off">
+    <div class="chips">
+      <button class="filter-btn active" onclick="setFilter('all',this)">Todos <span class="chip-n" id="n-all"></span></button>
+      <button class="filter-btn" onclick="setFilter('overdue',this)">Vencidos <span class="chip-n" id="n-overdue"></span></button>
+      <button class="filter-btn" onclick="setFilter('pending',this)">Al dia <span class="chip-n" id="n-pending"></span></button>
+      <button class="filter-btn" onclick="setFilter('paid',this)">Pagados <span class="chip-n" id="n-paid"></span></button>
+    </div>
   </div>
 
   <div class="notif-panel" id="notif-panel">
@@ -1493,8 +1652,10 @@ function ejecutarRestaurar() {
   cerrarRestore();
 }
 
+/* Pesos colombianos: sin centavos y con punto de miles ($1.250.000) */
 function money(n) {
-  return '$' + Number(n).toLocaleString('es-MX', {minimumFractionDigits:2, maximumFractionDigits:2});
+  var v = Math.round(Number(n) || 0);
+  return (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString('es-CO', {maximumFractionDigits:0});
 }
 
 function dateStr(s) {
@@ -1537,6 +1698,14 @@ function calcInterest(monto, rate, d1, d2) {
 function getStatus(d) {
   if (d.pagado) return 'paid';
   if (!d.fechaPago) return 'pending';
+  // Vencido si alguna cuota ya paso su fecha sin pagarse (antes solo se miraba la fecha final)
+  var alloc = allocateCuotas(d);
+  for (var i = 0; i < alloc.length; i++) {
+    if (alloc[i].status !== 'pagada' && alloc[i].fecha) {
+      var dc = daysLeft(alloc[i].fecha);
+      if (dc !== null && dc < 0) return 'overdue';
+    }
+  }
   var dl = daysLeft(d.fechaPago);
   return dl !== null && dl < 0 ? 'overdue' : 'pending';
 }
@@ -1711,30 +1880,93 @@ function allocateCuotas(d) {
   return resultado;
 }
 
+/* Resumen de un deudor: totales, cuotas y la proxima fecha que importa */
+function resumenDeudor(d) {
+  var total  = calcInterest(d.monto, d.interes, d.fechaPrestamo, d.fechaPago);
+  var pagado = totalAbonos(d);
+  var saldo  = Math.max(0, total - pagado);
+  var alloc  = allocateCuotas(d);
+  var proxima = null, vencido = 0;
+  for (var i = 0; i < alloc.length; i++) {
+    var c = alloc[i];
+    if (c.status === 'pagada' || !c.fecha) continue;
+    if (!proxima) proxima = {fecha: c.fecha, monto: c.status === 'parcial' ? c.restante : c.monto, num: i + 1};
+    var dl = daysLeft(c.fecha);
+    if (dl !== null && dl < 0) vencido += c.status === 'parcial' ? c.restante : c.monto;
+  }
+  if (!alloc.length && d.fechaPago && !d.pagado) {
+    proxima = {fecha: d.fechaPago, monto: saldo, num: null};
+    if ((daysLeft(d.fechaPago) || 0) < 0) vencido = saldo;
+  }
+  if (d.pagado) { proxima = null; vencido = 0; }
+  return {
+    total: total, pagado: pagado, saldo: saldo, alloc: alloc,
+    proxima: proxima, dias: proxima ? daysLeft(proxima.fecha) : null,
+    vencido: Math.round(Math.min(vencido, saldo) * 100) / 100,
+    pct: total > 0 ? Math.round(Math.min(pagado, total) / total * 100) : (d.pagado ? 100 : 0)
+  };
+}
+
+/* Orden de la lista: primero lo vencido (lo mas atrasado arriba), luego lo que vence
+   antes, y al final los pagados */
+function prioridad(d, r) {
+  if (d.pagado) return 3e6;
+  if (r.dias === null) return 2e6;
+  return r.dias + 1e6;
+}
+
+function fechaCorta(iso) {
+  if (!iso) return '';
+  var p = iso.split('-');
+  return parseInt(p[2], 10) + ' ' + (MESES[parseInt(p[1], 10) - 1] || '').toLowerCase() + (parseInt(p[0], 10) !== new Date().getFullYear() ? ' ' + p[0] : '');
+}
+
+function lineaProxima(d, r) {
+  if (d.pagado) return '<span class="prox prox-ok">&#10003; Pagado por completo</span>';
+  if (!r.proxima) return '<span class="prox">Sin fecha de pago</span>';
+  var dl = r.dias, txt, cls;
+  if (dl < 0)        { txt = 'Vencida hace ' + Math.abs(dl) + ' dia' + (Math.abs(dl) === 1 ? '' : 's'); cls = 'prox-vence'; }
+  else if (dl === 0) { txt = 'Vence HOY'; cls = 'prox-hoy'; }
+  else if (dl <= 5)  { txt = 'Vence en ' + dl + ' dia' + (dl === 1 ? '' : 's'); cls = 'prox-poco'; }
+  else               { txt = 'Proxima: ' + fechaCorta(r.proxima.fecha); cls = ''; }
+  return '<span class="prox ' + cls + '">' + txt + ' &middot; ' + money(r.proxima.monto) + '</span>';
+}
+
 function renderList() {
-  var q = document.getElementById('search').value.toLowerCase();
+  var q = document.getElementById('search').value.toLowerCase().trim();
 
-  var visible = debtors.filter(function(d) {
-    var match = d.nombre.toLowerCase().indexOf(q) !== -1 ||
-                (d.concepto || '').toLowerCase().indexOf(q) !== -1;
-    if (!match) return false;
-    if (filterState === 'all') return true;
-    return getStatus(d) === filterState;
-  });
-
-  var sumPendiente = 0, activos = 0;
-  debtors.forEach(function(d) {
-    var total  = calcInterest(d.monto, d.interes, d.fechaPrestamo, d.fechaPago);
-    var pagado = totalAbonos(d);
-    var pendiente = Math.max(0, total - pagado);
+  var resumenes = debtors.map(function(d) { return resumenDeudor(d); });
+  var sumPendiente = 0, sumVencido = 0, activos = 0, atrasados = 0;
+  var cuenta = {all: debtors.length, pending: 0, overdue: 0, paid: 0};
+  debtors.forEach(function(d, i) {
+    var r = resumenes[i];
+    cuenta[getStatus(d)]++;
     if (!d.pagado) {
-      sumPendiente += pendiente;
+      sumPendiente += r.saldo;
+      sumVencido += r.vencido;
       activos++;
+      if (r.vencido > 0) atrasados++;
     }
   });
-  document.getElementById('s-total').textContent     = money(sumPendiente);
-  document.getElementById('s-intereses').textContent = money(sumPendiente);
-  document.getElementById('s-count').textContent     = activos;
+  document.getElementById('s-total').textContent   = money(sumPendiente);
+  document.getElementById('s-vencido').textContent = money(sumVencido);
+  document.getElementById('s-count').textContent   = activos;
+  document.getElementById('s-atrasados').textContent = atrasados ? atrasados + ' con pagos atrasados' : 'Todos al dia';
+  ['all','pending','overdue','paid'].forEach(function(k) {
+    var el = document.getElementById('n-' + k);
+    if (el) el.textContent = cuenta[k];
+  });
+
+  var visible = [];
+  debtors.forEach(function(d, i) {
+    var texto = ((d.nombre || '') + ' ' + (d.concepto || '') + ' ' + (d.cedula || '') + ' ' + (d.telefono || '')).toLowerCase();
+    if (q && texto.indexOf(q) === -1) return;
+    if (filterState !== 'all' && getStatus(d) !== filterState) return;
+    visible.push(i);
+  });
+  visible.sort(function(a, b) {
+    return prioridad(debtors[a], resumenes[a]) - prioridad(debtors[b], resumenes[b]) || a - b;
+  });
 
   var container = document.getElementById('list');
   var abiertas = {};
@@ -1742,29 +1974,30 @@ function renderList() {
   for (var ab0 = 0; ab0 < abiertasEls.length; ab0++) abiertas[abiertasEls[ab0].getAttribute('data-uid')] = true;
 
   if (visible.length === 0) {
-    container.innerHTML = '<div class="empty"><div class="empty-icon">&#128176;</div>No hay deudores que mostrar.<br>Agrega uno con el boton de arriba.</div>';
+    container.innerHTML = '<div class="empty"><div class="empty-icon">&#128176;</div>' +
+      (debtors.length ? 'Ningun deudor coincide con la busqueda o el filtro.' : 'Aun no tienes deudores.<br>Agrega el primero con el boton <strong>+ Nuevo</strong>.') + '</div>';
     renderNotifPanel();
     return;
   }
 
   var out = '';
   for (var vi = 0; vi < visible.length; vi++) {
-    var d       = visible[vi];
-    var ri      = debtors.indexOf(d);
+    var ri      = visible[vi];
+    var d       = debtors[ri];
+    var r       = resumenes[ri];
     var status  = getStatus(d);
-    var total   = calcInterest(d.monto, d.interes, d.fechaPrestamo, d.fechaPago);
+    var total   = r.total;
     var intAmt  = total - (parseFloat(d.monto) || 0);
     var col     = COLORS[ri % COLORS.length];
-    var cuotas  = d.cuotas || [];
-    var cuotasAlloc = allocateCuotas(d);
+    var cuotasAlloc = r.alloc;
 
     var pagadas   = cuotasAlloc.filter(function(c){return c.status === 'pagada';}).length;
-    var montoPag  = totalAbonos(d);
-    var montoPend = Math.max(0, total - montoPag);
-    var pct       = total > 0 ? Math.round(Math.min(montoPag, total) / total * 100) : (d.pagado ? 100 : 0);
+    var montoPag  = r.pagado;
+    var montoPend = r.saldo;
+    var pct       = r.pct;
 
     var badgeCls  = status === 'paid' ? 'badge-paid' : status === 'overdue' ? 'badge-overdue' : 'badge-pending';
-    var badgeTxt  = status === 'paid' ? 'Pagado'     : status === 'overdue' ? 'Vencido'       : 'Pendiente';
+    var badgeTxt  = status === 'paid' ? 'Pagado'     : status === 'overdue' ? 'Vencido'       : 'Al dia';
 
     /* Alert banner */
     var bannerHTML = '';
@@ -1784,8 +2017,8 @@ function renderList() {
       }
     }
 
-    /* Cuota rows */
-    var cuotaRows = '';
+    /* Cuotas: las pendientes a la vista; las ya pagadas, plegadas */
+    var cuotaRows = '', cuotasPagadasRows = '';
     for (var qi = 0; qi < cuotasAlloc.length; qi++) {
       var q2   = cuotasAlloc[qi];
       var dl2  = daysLeft(q2.fecha);
@@ -1804,19 +2037,15 @@ function renderList() {
         } else {
           diasTexto = '<div class="cuota-dias-txt dias-txt-ok">Faltan ' + dl2 + ' dias para el pago</div>';
         }
-      } else if (esPagada) {
-        diasTexto = '<div class="cuota-dias-txt dias-txt-pagada">Cuota pagada</div>';
       }
 
-      var montoHTML = esParcial
-        ? '<span class="cuota-monto" style="color:#ffaa44">' + money(q2.aplicado) + ' / ' + money(q2.monto) + '</span>'
-        : '<span class="cuota-monto">' + money(q2.monto) + '</span>';
+      var montoHTML = '<span class="cuota-monto"' + (esParcial ? ' style="color:#ffaa44"' : '') + '>' + money(q2.monto) + '</span>';
 
       var parcialTxt = esParcial
-        ? '<div class="cuota-dias-txt" style="color:#ffaa44">Abonado: ' + money(q2.aplicado) + ' &mdash; Falta: ' + money(q2.restante) + '</div>'
+        ? '<div class="cuota-dias-txt" style="color:#ffaa44">Abonado ' + money(q2.aplicado) + ' &middot; falta ' + money(q2.restante) + '</div>'
         : '';
 
-      cuotaRows +=
+      var fila =
         '<div class="cuota-row ' + (esPagada ? 'cuota-done' : '') + '">' +
           '<div class="cuota-left-wrap">' +
             '<div class="cuota-left">' +
@@ -1827,83 +2056,92 @@ function renderList() {
             diasTexto +
             parcialTxt +
           '</div>' +
-          '<div style="display:flex;align-items:center;gap:10px;flex-shrink:0">' +
+          '<div class="cuota-right">' +
             montoHTML +
             '<input type="checkbox" class="cuota-check"' + (esPagada ? ' checked disabled' : '') +
-              ' onchange="marcarCuotaCompleta(' + ri + ',' + qi + ')" title="' + (esPagada ? 'Cuota ya pagada' : 'Marcar cuota completa como pagada') + '">' +
+              ' onchange="marcarCuotaCompleta(' + ri + ',' + qi + ')" title="' + (esPagada ? 'Cuota ya pagada' : 'Marcar cuota completa como pagada') + '" aria-label="Marcar cuota ' + (qi + 1) + ' como pagada">' +
           '</div>' +
         '</div>';
+      if (esPagada) cuotasPagadasRows += fila; else cuotaRows += fila;
+    }
+    var cuotasHTML = '';
+    if (cuotasAlloc.length) {
+      cuotasHTML = '<div class="cuotas-label">Cuotas &mdash; ' + pagadas + ' de ' + cuotasAlloc.length + ' pagadas</div>' + cuotaRows;
+      if (cuotasPagadasRows) {
+        cuotasHTML += '<details class="mini-details"><summary>Ver ' + pagadas + ' cuota' + (pagadas === 1 ? '' : 's') + ' pagada' + (pagadas === 1 ? '' : 's') + '</summary>' + cuotasPagadasRows + '</details>';
+      }
+    } else {
+      cuotasHTML = '<div class="vacio-txt">Sin cuotas configuradas.</div>';
     }
 
-    /* Abonos history */
+    /* Abonos: los 3 mas recientes a la vista; el resto, plegado */
     var abonos = d.abonos || [];
-    var abonosHTML = '';
-    if (abonos.length) {
-      for (var ai = abonos.length - 1; ai >= 0; ai--) {
-        var ab = abonos[ai];
-        abonosHTML +=
-          '<div class="abono-row">' +
-            '<div>' +
-              '<span class="abono-monto">' + money(ab.monto) + '</span>' +
-              '<span class="abono-fecha">' + dateStr(ab.fecha) + (ab.nota ? ' &middot; ' + esc(ab.nota) : '') + '</span>' +
-            '</div>' +
-            '<button class="abono-del" onclick="eliminarAbono(' + ri + ',' + ai + ',event)" title="Eliminar abono">&times;</button>' +
-          '</div>';
-      }
+    var abonosHTML = '', abonosViejos = '';
+    for (var ai = abonos.length - 1; ai >= 0; ai--) {
+      var ab = abonos[ai];
+      var filaAb =
+        '<div class="abono-row">' +
+          '<div>' +
+            '<span class="abono-monto">' + money(ab.monto) + '</span>' +
+            '<span class="abono-fecha">' + dateStr(ab.fecha) + (ab.nota ? ' &middot; ' + esc(ab.nota) : '') + '</span>' +
+          '</div>' +
+          '<button class="abono-del" onclick="eliminarAbono(' + ri + ',' + ai + ',event)" title="Eliminar abono" aria-label="Eliminar abono">&times;</button>' +
+        '</div>';
+      if (abonos.length - 1 - ai < 3) abonosHTML += filaAb; else abonosViejos += filaAb;
+    }
+    if (abonosViejos) {
+      abonosHTML += '<details class="mini-details"><summary>Ver ' + (abonos.length - 3) + ' abono' + (abonos.length - 3 === 1 ? '' : 's') + ' anterior' + (abonos.length - 3 === 1 ? '' : 'es') + '</summary>' + abonosViejos + '</details>';
     }
 
     out +=
-      '<div class="debtor-card' + (abiertas[d.id] ? ' open' : '') + '" id="card-' + ri + '" data-uid="' + esc(d.id) + '">' +
+      '<div class="debtor-card estado-' + status + (abiertas[d.id] ? ' open' : '') + '" id="card-' + ri + '" data-uid="' + esc(d.id) + '">' +
         '<div class="card-top" onclick="toggleCard(' + ri + ')">' +
           '<div class="debtor-left">' +
             '<div class="avatar" style="background:' + col.bg + ';color:' + col.fg + '">' + esc(initials(d.nombre)) + '</div>' +
-            '<div>' +
+            '<div class="debtor-text">' +
               '<div class="debtor-name">' + esc(d.nombre) + '</div>' +
               '<div class="debtor-concept">' + (esc(d.concepto) || 'Sin concepto') + '</div>' +
             '</div>' +
           '</div>' +
           '<div class="debtor-right">' +
             '<div>' +
-              '<div class="amount-label">Con intereses</div>' +
-              '<div class="amount-val">' + money(total) + '</div>' +
+              '<div class="amount-label">' + (d.pagado ? 'Pago' : 'Debe') + '</div>' +
+              '<div class="amount-val' + (status === 'overdue' ? ' rojo' : '') + '">' + money(d.pagado ? total : montoPend) + '</div>' +
             '</div>' +
             '<span class="badge ' + badgeCls + '">' + badgeTxt + '</span>' +
             '<span class="chevron">&#9662;</span>' +
           '</div>' +
+          '<div class="debtor-prox">' + lineaProxima(d, r) + '</div>' +
+          '<div class="mini-progress"><div style="width:' + pct + '%"></div></div>' +
         '</div>' +
         '<div class="card-body">' +
           '<div class="card-divider"></div>' +
           bannerHTML +
           '<div class="info-grid">' +
+            '<div class="info-item info-red"><div class="info-key">Saldo pendiente</div><div class="info-val">' + money(montoPend) + '</div></div>' +
+            '<div class="info-item info-green"><div class="info-key">Total pagado</div><div class="info-val">' + money(montoPag) + '</div></div>' +
+            '<div class="info-item"><div class="info-key">Monto prestado</div><div class="info-val">' + money(d.monto) + '</div></div>' +
+            '<div class="info-item"><div class="info-key">Total con intereses</div><div class="info-val">' + money(total) + '</div></div>' +
+            '<div class="info-item"><div class="info-key">Intereses</div><div class="info-val" style="color:' + (intAmt > 0 ? '#ff6b6b' : 'var(--text)') + '">' + money(intAmt) + ' <span class="info-mini">(' + (d.interes || 0) + '% mes)</span></div></div>' +
+            '<div class="info-item"><div class="info-key">Prestamo / limite</div><div class="info-val">' + dateStr(d.fechaPrestamo) + '<br>' + dateStr(d.fechaPago) + '</div></div>' +
             '<div class="info-item"><div class="info-key">Cedula</div><div class="info-val">' + (esc(d.cedula) || '—') + '</div></div>' +
             '<div class="info-item"><div class="info-key">Telefono</div><div class="info-val">' +
               (d.telefono
-                ? '<a href="https://wa.me/' + limpiarTel(d.telefono) + '" target="_blank" style="color:var(--accent);text-decoration:none">' + esc(d.telefono) + ' &#128241;</a>'
+                ? '<a href="https://wa.me/' + limpiarTel(d.telefono) + '" target="_blank" style="color:var(--accent);text-decoration:none">' + esc(d.telefono) + '</a>'
                 : '—') +
             '</div></div>' +
-            '<div class="info-item"><div class="info-key">Concepto</div><div class="info-val">' + (esc(d.concepto) || '—') + '</div></div>' +
-            '<div class="info-item"><div class="info-key">Fecha prestamo</div><div class="info-val">' + dateStr(d.fechaPrestamo) + '</div></div>' +
-            '<div class="info-item"><div class="info-key">Fecha limite</div><div class="info-val">' + dateStr(d.fechaPago) + '</div></div>' +
-            '<div class="info-item"><div class="info-key">Monto prestado</div><div class="info-val">' + money(d.monto) + '</div></div>' +
-            '<div class="info-item"><div class="info-key">Intereses</div><div class="info-val" style="color:' + (intAmt > 0 ? '#ff6b6b' : '#f0f0f8') + '">' + money(intAmt) + '</div></div>' +
-            '<div class="info-item"><div class="info-key">Tasa mensual</div><div class="info-val">' + (d.interes || 0) + '%</div></div>' +
-            '<div class="info-item"><div class="info-key">Progreso</div><div class="info-val">' + pct + '%</div></div>' +
-            '<div class="info-item info-green"><div class="info-key">Total pagado</div><div class="info-val">' + money(montoPag) + '</div></div>' +
-            '<div class="info-item info-red"><div class="info-key">Saldo pendiente</div><div class="info-val">' + money(montoPend) + '</div></div>' +
           '</div>' +
+          '<div class="progress-head"><span>Progreso del pago</span><strong>' + pct + '%</strong></div>' +
           '<div class="progress-wrap"><div class="progress-fill" style="width:' + pct + '%"></div></div>' +
-          (cuotas.length
-            ? '<div class="cuotas-label">Cuotas &mdash; ' + pagadas + '/' + cuotas.length + ' completas</div>' + cuotaRows
-            : '<div style="font-size:13px;color:var(--text3);padding:4px 0">Sin cuotas configuradas.</div>'
-          ) +
-          '<div class="cuotas-label" style="margin-top:1rem">Historial de abonos</div>' +
-          (abonos.length ? abonosHTML : '<div style="font-size:13px;color:var(--text3);padding:4px 0">Aun no hay abonos registrados.</div>') +
+          cuotasHTML +
+          '<div class="cuotas-label" style="margin-top:1rem">Abonos (' + abonos.length + ')</div>' +
+          (abonos.length ? abonosHTML : '<div class="vacio-txt">Aun no hay abonos registrados.</div>') +
           '<div class="card-actions">' +
-            '<button class="btn-sm btn-success" onclick="abrirAbono(' + ri + ',event)">+ Registrar abono</button>' +
+            '<button class="btn-sm btn-success btn-principal" onclick="abrirAbono(' + ri + ',event)">+ Registrar abono</button>' +
             (d.telefono ? '<button class="btn-sm btn-wa" onclick="enviarWA(' + ri + ',event)">&#128241; WhatsApp</button>' : '') +
             (d.telefono ? '<button class="btn-sm btn-wa" onclick="verRecibo(' + ri + ',event)">&#129518; Recibo</button>' : '') +
-            '<button class="btn-sm" onclick="editDebtor(' + ri + ',event)">Editar</button>' +
-            (!d.pagado ? '<button class="btn-sm btn-success" onclick="markPaid(' + ri + ',event)">Marcar pagado</button>' : '') +
+            '<button class="btn-sm" onclick="editDebtor(' + ri + ',event)">&#9998;&#65039; Editar</button>' +
+            (!d.pagado ? '<button class="btn-sm btn-success" onclick="markPaid(' + ri + ',event)">&#10003; Marcar pagado</button>' : '') +
             '<button class="btn-sm btn-danger" onclick="deleteDebtor(' + ri + ',event)">Eliminar</button>' +
           '</div>' +
         '</div>' +
@@ -2060,11 +2298,11 @@ function updateNotifBtn() {
   if (!btn) return;
   var activo = window.Notification && Notification.permission === 'granted' && notifActivadasPorUsuario();
   if (activo) {
-    btn.textContent = '🔔 Notificaciones ON';
+    btn.innerHTML = '<span class="ico">🔔</span><span class="txt"> Notificaciones ON</span>';
     btn.classList.add('active');
     btn.onclick = function() { checkNotify(); showToast('Revisando vencimientos...'); };
   } else {
-    btn.textContent = '🔕 Activar notificaciones';
+    btn.innerHTML = '<span class="ico">🔕</span><span class="txt"> Activar notificaciones</span>';
     btn.classList.remove('active');
     btn.onclick = solicitarPermiso;
   }
@@ -2998,6 +3236,8 @@ var anYear = new Date().getFullYear();
 
 function switchTab(tab) {
   currentTab = tab;
+  document.body.classList.toggle('tab-analisis', tab === 'analisis');
+  window.scrollTo(0, 0);
   document.getElementById('view-deudores').style.display = tab === 'deudores' ? 'block' : 'none';
   document.getElementById('view-analisis').style.display = tab === 'analisis' ? 'block' : 'none';
   document.getElementById('tab-deudores').classList.toggle('active', tab === 'deudores');
