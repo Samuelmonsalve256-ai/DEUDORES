@@ -70,7 +70,8 @@ Necesitas iOS 16.4 o superior.
 2. Abre **Mis Deudores desde el ícono** de la pantalla de inicio e inicia sesión.
 3. Ve a **⋮ → Ajustes → Notificaciones → Activar notificaciones** y toca **Permitir**.
 4. Te llegará una notificación de prueba: *"✅ Mis Deudores · Las notificaciones funcionan…"*.
-5. En **Hora del aviso diario** elige a qué hora quieres el resumen (por defecto 8:00 a. m.).
+5. En **Primer aviso del día** elige la hora de la mañana (por defecto 8:00 a. m.).
+6. Si quieres un segundo aviso, elige la hora en **Segundo aviso del día** (de 1:00 p. m. a 8:00 p. m.). Déjalo en *Sin segundo aviso* si te basta con uno.
 
 Cada día, a esa hora, te llega como cualquier notificación de una app:
 
@@ -78,7 +79,11 @@ Cada día, a esa hora, te llega como cualquier notificación de una app:
 - 🟡 **Mañana vencen…**: lo que vence mañana.
 - 💾 **Es hora de tu backup**: cuando toca hacer backup. Se repite cada 3 días hasta que lo hagas.
 
-Al tocarla se abre la app en la pestaña **Cobrar** o en el backup. Las notificaciones llevan el ícono verde **$** de la app y el emoji de color al inicio, para distinguirlas de las demás. iOS no permite cambiar el color de fondo de una notificación.
+El segundo aviso (en la tarde) dice 🔴 **Siguen pendientes hoy** y trae solo lo que todavía no se ha pagado. Si ya cobraste todo, no llega. El backup se recuerda solo en el primero.
+
+Al tocarla se abre la app en la pestaña **Cobrar** o en el backup. Las notificaciones llevan el ícono verde **$** de la app y el emoji de color al inicio, para distinguirlas de las demás. iOS no permite cambiar el color de fondo ni el sonido de la notificación de una app web: suena con el sonido normal del iPhone.
+
+> Si cambias el archivo `index.ts` de la función, vuelve a hacer el paso 3: abre **Edge Functions → deudores-avisos → Code**, pega el código nuevo y pulsa **Deploy**.
 
 ---
 

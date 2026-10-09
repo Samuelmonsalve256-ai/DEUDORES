@@ -276,6 +276,12 @@ const legado = [
   await espera(1600); await guardado(A);
   ok(B.vivos('deudores_ajustes').length === 1 && B.vivos('deudores_ajustes')[0].data.negocio.nombre === 'Inversiones Monsalve', '4.6 los datos del negocio se guardan en la nube');
   ok(/Samuel · Inversiones Monsalve · Tel\. 3005556677/.test(await evalua(A, () => firmaMensaje())), '4.6 los mensajes de WhatsApp llevan tu firma');
+  await A.selectOption('#aj-hora', '9');
+  await A.selectOption('#aj-hora2', '17');
+  await guardado(A); await espera(1600); await guardado(A);
+  ok(JSON.stringify(B.vivos('deudores_ajustes')[0].data.avisos.horas) === '[9,17]', '5.5 dos avisos al dia (9 a.m. y 5 p.m.) se guardan en la nube');
+  await A.selectOption('#aj-hora2', '');
+  ok(await evalua(A, () => JSON.stringify(ajustes.avisos.horas) === '[9]'), '5.5 "Sin segundo aviso" deja uno solo');
   await evalua(A, () => ddCerrarCuenta());
 
   // ── 11. Ocultar montos y PIN ────────────────────────────────────────────────
