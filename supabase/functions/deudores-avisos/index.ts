@@ -5,9 +5,10 @@
 //
 //   accion "clave"  : (con tu sesion) entrega la clave publica para activar avisos.
 //   accion "prueba" : (con tu sesion) envia una notificacion de prueba a tus dispositivos.
-//   accion "diario" : (la llama Supabase Cron cada hora) a la hora que elegiste en
-//                     Ajustes revisa tus prestamos y envia: atrasados y lo que vence hoy,
-//                     lo que vence manana, y el recordatorio de backup.
+//   accion "diario" : (la llama Supabase Cron cada hora) a las horas que elegiste en
+//                     Ajustes (1 o 2 veces al dia) revisa tus prestamos y envia: atrasados
+//                     y lo que vence hoy, lo que vence manana y (en el primer aviso) el
+//                     recordatorio de backup.
 //
 // No usa librerias externas: el cifrado de Web Push (RFC 8291) y la firma VAPID
 // (RFC 8292) se hacen con WebCrypto. Ver README del repositorio DEUDORES.
@@ -152,7 +153,23 @@ export function calcularAvisos(prestamos, hoy) {
   return {atrasados, deHoy, deManana};
 }
 
-export function armarMensajes(av, ajustes, hoy) {
+/* Horas del dia en que el usuario quiere avisos (1 o 2). Por defecto 8:00 a.m. */
+export function horasDeAviso(ajustes) {
+  const a = (ajustes && ajustes.avisos) || {};
+  let horas = Array.isArray(a.horas) ? a.horas.filter(Number.isInteger) : [];
+  if (!horas.length) horas = [Number.isInteger(a.hora) ? a.hora : 8];
+  return [...new Set(horas)].sort((x, y) => x - y).slice(0, 2);
+}
+/* A esta hora, ¿toca aviso? Devuelve null o {tipo, primera} */
+export function avisoDeLaHora(ajustes, hora) {
+  if (ajustes && ajustes.avisos && ajustes.avisos.activos === false) return null;
+  const horas = horasDeAviso(ajustes);
+  if (!horas.includes(hora)) return null;
+  return {tipo: 'diario-' + hora, primera: hora === horas[0]};
+}
+
+export function armarMensajes(av, ajustes, hoy, opciones = {}) {
+  const segunda = opciones.primera === false;
   const msgs = [];
   const lista = (xs) => xs.slice(0, 4).map(x => x.nombre + ' ' + pesos(x.monto)).join(', ') + (xs.length > 4 ? ' y ' + (xs.length - 4) + ' más' : '');
   if (av.atrasados.length || av.deHoy.length) {
@@ -160,12 +177,13 @@ export function armarMensajes(av, ajustes, hoy) {
     if (av.deHoy.length) partes.push('Hoy: ' + lista(av.deHoy));
     if (av.atrasados.length) partes.push('Atrasados (' + av.atrasados.length + '): ' + pesos(av.atrasados.reduce((s, x) => s + x.monto, 0)) + ' — ' + lista(av.atrasados));
     const total = av.deHoy.concat(av.atrasados).reduce((s, x) => s + x.monto, 0);
-    msgs.push({title: '🔴 Cobros para hoy · ' + pesos(total), body: partes.join('\n'), tag: 'dd-cobros', url: URL_APP + '?tab=cobrar'});
+    msgs.push({title: (segunda ? '🔴 Siguen pendientes hoy · ' : '🔴 Cobros para hoy · ') + pesos(total), body: partes.join('\n'), tag: 'dd-cobros', url: URL_APP + '?tab=cobrar'});
   }
   if (av.deManana.length) {
     msgs.push({title: '🟡 Mañana vence' + (av.deManana.length === 1 ? '' : 'n') + ' ' + av.deManana.length + ' cuota' + (av.deManana.length === 1 ? '' : 's'),
                body: lista(av.deManana), tag: 'dd-manana', url: URL_APP + '?tab=cobrar'});
   }
+  if (segunda) return msgs;   // el recordatorio de backup va solo en el primer aviso del dia
   const bk = (ajustes && ajustes.backup) || {};
   const cada = {semanal: 7, quincenal: 15, mensual: 30}[bk.frecuencia] || 30;
   const desde = bk.ultimo ? diasEntre(String(bk.ultimo).slice(0, 10), hoy) : null;
@@ -255,14 +273,13 @@ if (typeof Deno !== 'undefined' && Deno.serve) Deno.serve(async (req) => {
         const filas = await db('mc_registros?user_id=eq.' + uid + '&coleccion=in.(deudores,deudores_ajustes)&deleted_at=is.null&select=coleccion,data');
         const prestamos = filas.filter(f => f.coleccion === 'deudores').map(f => f.data);
         const ajustes = (filas.find(f => f.coleccion === 'deudores_ajustes') || {}).data || {};
-        const horaUsuario = Number.isInteger(ajustes.avisos && ajustes.avisos.hora) ? ajustes.avisos.hora : 8;
-        if (horaUsuario !== hora && !cuerpo.forzar) continue;
-        if (ajustes.avisos && ajustes.avisos.activos === false) continue;
-        // Una sola vez por dia, aunque el cron se repita
+        const aviso = avisoDeLaHora(ajustes, hora) || (cuerpo.forzar ? {tipo: 'diario-' + hora, primera: true} : null);
+        if (!aviso) continue;
+        // Cada aviso una sola vez por dia, aunque el cron se repita
         const marca = await db('dd_push_envios', {method: 'POST', headers: {Prefer: 'resolution=ignore-duplicates,return=representation'},
-          body: JSON.stringify({user_id: uid, fecha: hoy, tipo: 'diario'})});
+          body: JSON.stringify({user_id: uid, fecha: hoy, tipo: aviso.tipo})});
         if (!marca || !marca.length) continue;
-        const msgs = armarMensajes(calcularAvisos(prestamos, hoy), ajustes, hoy);
+        const msgs = armarMensajes(calcularAvisos(prestamos, hoy), ajustes, hoy, {primera: aviso.primera});
         resultado.push({usuario: uid, mensajes: msgs.length, enviadas: msgs.length ? await enviarAUsuario(uid, msgs, vapid) : 0});
       }
       return resp({hoy, hora, resultado});

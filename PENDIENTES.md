@@ -28,4 +28,4 @@ Hay que decidir antes de hacerlo:
 
 - **Face ID / Touch ID** para desbloquear, en lugar del PIN. Se puede hacer con *passkeys* en el iPhone.
 - **Fotos de varios comprobantes por abono.** Hoy se guarda una foto por abono.
-- **Aviso adicional por la tarde.** Hoy es un solo resumen al día, a la hora que elijas.
+- **Sonido propio para las notificaciones.** El iPhone no lo permite en apps web. Solo se puede con una app nativa publicada en la App Store (necesita cuenta de Apple Developer, USD 99 al año).

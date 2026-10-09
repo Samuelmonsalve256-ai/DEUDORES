@@ -1570,13 +1570,24 @@ body.montos-ocultos .debtor-concept { filter:blur(7px); user-select:none; }
 
     <div class="aj-sec">&#128276; Notificaciones en este dispositivo</div>
     <div class="dd-cuenta" id="aj-push-estado">Revisando…</div>
-    <div class="field">
-      <label for="aj-hora">Hora del aviso diario</label>
-      <select id="aj-hora" onchange="guardarHoraAvisos()">
-        <option value="6">6:00 a.m.</option><option value="7">7:00 a.m.</option><option value="8">8:00 a.m.</option>
-        <option value="9">9:00 a.m.</option><option value="10">10:00 a.m.</option><option value="12">12:00 m.</option>
-        <option value="14">2:00 p.m.</option><option value="17">5:00 p.m.</option><option value="19">7:00 p.m.</option>
-      </select>
+    <div class="row2">
+      <div class="field">
+        <label for="aj-hora">Primer aviso del dia</label>
+        <select id="aj-hora" onchange="guardarHoraAvisos()">
+          <option value="6">6:00 a.m.</option><option value="7">7:00 a.m.</option><option value="8">8:00 a.m.</option>
+          <option value="9">9:00 a.m.</option><option value="10">10:00 a.m.</option><option value="11">11:00 a.m.</option>
+          <option value="12">12:00 m.</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="aj-hora2">Segundo aviso del dia</label>
+        <select id="aj-hora2" onchange="guardarHoraAvisos()">
+          <option value="">Sin segundo aviso</option>
+          <option value="13">1:00 p.m.</option><option value="14">2:00 p.m.</option><option value="15">3:00 p.m.</option>
+          <option value="16">4:00 p.m.</option><option value="17">5:00 p.m.</option><option value="18">6:00 p.m.</option>
+          <option value="19">7:00 p.m.</option><option value="20">8:00 p.m.</option>
+        </select>
+      </div>
     </div>
     <div class="aj-botones">
       <button class="btn-cancel" id="aj-push-probar" onclick="probarPush()">Enviar prueba</button>
@@ -4715,7 +4726,7 @@ async function activarPush() {
       dispositivo: (esIOS() ? 'iPhone' : navigator.platform || 'web') + ' · ' + new Date().toLocaleDateString('es-CO')}, {onConflict: 'endpoint'});
     if (g.error) throw g.error;
     try { localStorage.setItem('dd_push_activo', '1'); } catch(e) {}
-    if (!(ajustes.avisos && Number.isInteger(ajustes.avisos.hora))) cambiarAjustes(function(a) { a.avisos = {hora: 8, activos: true}; });
+    if (!(ajustes.avisos && Number.isInteger(ajustes.avisos.hora))) cambiarAjustes(function(a) { a.avisos = {hora: 8, horas: [8], activos: true}; });
     showToast('✓ Notificaciones activadas. Te llegara una de prueba', 4000);
     await probarPush(true);
   } catch(e) {
@@ -4734,10 +4745,22 @@ async function probarPush(silencioso) {
     if (!silencioso) showToast(r.data && r.data.enviadas ? '✓ Notificacion de prueba enviada' : 'No hay dispositivos con avisos activos', 4000);
   } catch(e) { showToast('No se pudo enviar la prueba. Revisa el paso de notificaciones del README', 5000); }
 }
+/* Uno o dos avisos al dia: el primero en la manana y, si quieres, otro en la tarde */
+function horasDeAvisoApp() {
+  var a = ajustes.avisos || {};
+  var horas = Array.isArray(a.horas) ? a.horas.filter(function(h) { return Number.isInteger(h); }) : [];
+  if (!horas.length) horas = [Number.isInteger(a.hora) ? a.hora : 8];
+  return horas.slice().sort(function(x, y) { return x - y; });
+}
+function textoHora(h) { return h === 12 ? '12:00 m.' : (h > 12 ? (h - 12) + ':00 p.m.' : h + ':00 a.m.'); }
 function guardarHoraAvisos() {
-  var h = parseInt(document.getElementById('aj-hora').value, 10);
-  cambiarAjustes(function(a) { a.avisos = Object.assign({activos: true}, a.avisos || {}, {hora: h}); });
-  showToast('Te avisare todos los dias a esa hora');
+  var h1 = parseInt(document.getElementById('aj-hora').value, 10);
+  var v2 = document.getElementById('aj-hora2').value;
+  var horas = [h1];
+  if (v2 !== '' && parseInt(v2, 10) !== h1) horas.push(parseInt(v2, 10));
+  cambiarAjustes(function(a) { a.avisos = Object.assign({activos: true}, a.avisos || {}, {hora: h1, horas: horas}); });
+  showToast(horas.length === 2 ? 'Te avisare todos los dias a las ' + textoHora(horas[0]) + ' y a las ' + textoHora(horas[1])
+                               : 'Te avisare todos los dias a las ' + textoHora(h1), 3500);
 }
 
 /* ════════════════════ PANTALLA DE AJUSTES ════════════════════ */
@@ -4750,7 +4773,11 @@ async function actualizarAjustesUI() {
   document.getElementById('aj-neg-doc').value = n.documento || '';
   document.getElementById('aj-neg-pie').value = n.pie || '';
   document.getElementById('aj-backup-frec').value = ajustes.backup.frecuencia || 'mensual';
-  document.getElementById('aj-hora').value = String((ajustes.avisos && ajustes.avisos.hora) || 8);
+  var horasAv = horasDeAvisoApp();
+  var selH1 = document.getElementById('aj-hora');
+  if (!selH1.querySelector('option[value="' + horasAv[0] + '"]')) selH1.insertAdjacentHTML('beforeend', '<option value="' + horasAv[0] + '">' + textoHora(horasAv[0]) + '</option>');
+  selH1.value = String(horasAv[0]);
+  document.getElementById('aj-hora2').value = horasAv[1] ? String(horasAv[1]) : '';
   var d = diasDesdeBackup();
   document.getElementById('aj-backup-estado').innerHTML = d === null ? '<strong>Aun no has descargado ningun backup.</strong>'
     : 'Ultimo backup: <strong>' + (d === 0 ? 'hoy' : 'hace ' + d + ' dia' + (d === 1 ? '' : 's')) + '</strong>' +
@@ -4764,7 +4791,7 @@ async function actualizarAjustesUI() {
   if (esIOS() && !esAppInstalada()) txt = 'Para recibir avisos en el iPhone, abre la app desde el <strong>icono de la pantalla de inicio</strong> (Safari → Compartir → Agregar a inicio).';
   else if (!pushSoportado()) txt = 'Este navegador no permite notificaciones (en iPhone se necesita iOS 16.4 o superior).';
   else if (Notification.permission === 'denied') txt = '<span style="color:var(--accent2)">Bloqueadas.</span> Activalas en Ajustes del iPhone → Notificaciones → Deudores.';
-  else if (sub) txt = '<strong style="color:var(--accent)">Activas en este dispositivo.</strong> Cada dia a la hora elegida te llega: 🔴 lo atrasado y lo de hoy, 🟡 lo de manana y 💾 el recordatorio de backup.';
+  else if (sub) txt = '<strong style="color:var(--accent)">Activas en este dispositivo.</strong> ' + (horasAv.length === 2 ? 'Todos los dias a las ' + textoHora(horasAv[0]) + ' y a las ' + textoHora(horasAv[1]) : 'Todos los dias a las ' + textoHora(horasAv[0])) + ' te llega: 🔴 lo atrasado y lo de hoy, 🟡 lo de manana y 💾 el recordatorio de backup' + (horasAv.length === 2 ? ' (en la tarde solo te recuerda lo que siga sin pagar).' : '.');
   else txt = 'Desactivadas. Activalas para que te lleguen los cobros del dia como una notificacion, aunque la app este cerrada.';
   est.innerHTML = txt;
   document.getElementById('aj-push-btn').textContent = sub ? 'Volver a activar' : 'Activar notificaciones';

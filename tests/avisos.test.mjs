@@ -57,5 +57,15 @@ ok(sinBackup.length === 1 && sinBackup[0].title.startsWith('💾'), 'avisos: bac
 const repetido = fn.armarMensajes({atrasados: [], deHoy: [], deManana: []}, {backup: {frecuencia: 'semanal', ultimo: '2026-09-30'}}, hoy);
 ok(repetido.length === 0, 'avisos: el recordatorio de backup se repite cada 3 dias, no todos los dias');
 
+// Dos avisos al dia
+ok(fn.horasDeAviso({}).join() === '8' && fn.horasDeAviso({avisos: {hora: 12}}).join() === '12', 'avisos: sin ajuste => 8 a.m.; ajuste viejo de una hora se respeta');
+ok(fn.horasDeAviso({avisos: {hora: 9, horas: [17, 9]}}).join() === '9,17', 'avisos: dos horas, ordenadas');
+const dos = {avisos: {hora: 8, horas: [8, 17], activos: true}};
+ok(fn.avisoDeLaHora(dos, 8).primera === true && fn.avisoDeLaHora(dos, 17).primera === false && fn.avisoDeLaHora(dos, 12) === null, 'avisos: a las 8 el primero, a las 5 p.m. el segundo, a otra hora nada');
+ok(fn.avisoDeLaHora(dos, 8).tipo !== fn.avisoDeLaHora(dos, 17).tipo, 'avisos: cada aviso del dia se marca aparte (no se bloquean entre si)');
+ok(fn.avisoDeLaHora({avisos: {horas: [8, 17], activos: false}}, 8) === null, 'avisos: desactivados => no se envia');
+const tarde = fn.armarMensajes(av, {backup: {frecuencia: 'mensual', ultimo: '2026-09-09'}}, hoy, {primera: false});
+ok(tarde.length === 2 && tarde[0].title.startsWith('🔴 Siguen pendientes hoy') && !tarde.some(x => x.title.startsWith('💾')), 'avisos: el de la tarde dice "Siguen pendientes" y no repite el backup');
+
 console.log(fallos ? '\n' + fallos + ' FALLAS (avisos)' : '\nAVISOS: TODO OK');
 process.exit(fallos ? 1 : 0);
