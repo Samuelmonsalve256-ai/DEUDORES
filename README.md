@@ -1,91 +1,118 @@
 # Mis Deudores
 
-Control de deudores, cuotas y abonos, con guardado automático en la nube.
+Control de clientes, préstamos, cuotas y abonos desde el iPhone o el computador, con guardado automático en la nube.
 
-Los datos se guardan en la misma cuenta y la misma base de datos (Supabase) que **MotoContable**,
-con las mismas protecciones:
+**App:** <https://samuelmonsalve256-ai.github.io/DEUDORES/>
 
-- Solo tu cuenta puede leer y escribir tus deudores.
-- Cada cambio se guarda solo en la nube, unos segundos después de hacerlo.
-- Cada versión anterior (antes de editar, de borrar un abono o de eliminar un deudor) queda guardada
-  y se recupera desde el menú **⋮ → Recuperar datos borrados o cambiados**.
-- Si no hay internet, todo queda guardado en el dispositivo y se sube cuando vuelve la conexión.
-- Si dos dispositivos cambian el mismo deudor a la vez, nada se pierde: la otra versión queda en el historial.
+Los datos se guardan en la misma cuenta y la misma base de datos (Supabase) que **MotoContable**:
 
-> ⚠️ **Nunca subas a GitHub un archivo de backup** (`mis-deudores-backup-….json`). Este repositorio es
-> público y tiene solo el programa, sin datos.
+- Solo tu cuenta puede leer y escribir tus datos.
+- Cada cambio se guarda solo en la nube, unos segundos después.
+- Cada versión anterior queda guardada y se recupera desde **⋮ → Recuperar datos borrados o cambiados**.
+- Sin internet, todo queda en el dispositivo y se sube cuando vuelve la conexión.
+- La app abre aunque no haya internet.
 
----
-
-## Configuración (una sola vez)
-
-### Paso 1: permitir los deudores en Supabase
-
-1. Entra en <https://supabase.com/dashboard> y abre el proyecto de MotoContable
-   (`llyovzgwdqoeunvyczcy`).
-2. En el menú izquierdo abre **SQL Editor** y pulsa **New query**.
-3. Abre el archivo [`supabase/deudores.sql`](supabase/deudores.sql), copia todo su contenido y pégalo.
-4. Pulsa **Run**.
-5. Abajo debe aparecer una regla que termina en `'deudores'`. Si sale un error en rojo, detente y guarda el mensaje.
-
-Este archivo **no borra ni cambia ningún dato** de MotoContable ni de Traspasos.
-
-### Paso 2: publicar la app (GitHub Pages)
-
-1. En este repositorio ve a **Settings → Pages**.
-2. En **Source** elige **Deploy from a branch**.
-3. En **Branch** elige `main` y la carpeta `/ (root)`. Pulsa **Save**.
-4. Espera uno o dos minutos. Tu app quedará en:
-   **<https://samuelmonsalve256-ai.github.io/DEUDORES/>**
-
-### Paso 3: enlace de "¿Olvidaste tu contraseña?"
-
-1. En Supabase abre **Authentication → URL Configuration**.
-2. En **Redirect URLs** pulsa **Add URL** y agrega:
-   `https://samuelmonsalve256-ai.github.io/DEUDORES/**`
-3. Pulsa **Save**.
+> ⚠️ **Nunca subas a GitHub un archivo de backup** (`mis-deudores-backup-….json`). Este repositorio es público y tiene solo el programa, sin datos.
 
 ---
 
-## Pasar tus deudores actuales a la nube
+## Qué tiene la app
 
-Tus datos actuales están guardados solo dentro del navegador, en el archivo que abres desde el escritorio.
-Hay que sacarlos con un backup y cargarlos en la app nueva:
-
-1. Abre **tu archivo de siempre** (el del escritorio).
-2. Pulsa **⋮ → Guardar backup**. Se descarga `mis-deudores-backup-<fecha>.json`.
-   Guarda una copia en Google Drive o en tu correo.
-3. Abre la app nueva: <https://samuelmonsalve256-ai.github.io/DEUDORES/>
-4. Inicia sesión con **la misma cuenta de MotoContable** (correo y contraseña).
-5. Pulsa **⋮ → Cargar archivo backup** y elige el archivo del paso 2.
-   La app muestra cuántos deudores son nuevos y no borra nada.
-6. Pulsa **Cargar**. Arriba debe decir **"Guardado en la nube"** (punto verde).
-7. Comprueba que estén todos tus deudores con sus abonos.
-
-Desde ese momento usa siempre el enlace nuevo, en el computador y en el celular.
-Ya no necesitas el archivo del escritorio, pero **no lo borres** hasta comprobar que todo está bien.
-
----
-
-## El indicador de arriba
-
-| Indicador | Qué significa |
+| Pantalla | Para qué sirve |
 |---|---|
-| 🟢 **Guardado en la nube** | Todo está a salvo en la nube |
-| 🟡 **Guardando…** | Está subiendo tus últimos cambios |
-| 🟠 **Sin internet** | Tus cambios quedan en el dispositivo y se suben al volver la conexión |
-| 🟠 **Sin sesión** | Los datos están solo en este dispositivo: toca para iniciar sesión |
-| 🔴 **Error al guardar** | Toca para reintentar. Tus datos siguen a salvo en el dispositivo |
+| **Deudores** | Un cliente por tarjeta, ordenados por urgencia (lo atrasado primero). Filtros: Todos, Vencidos, Al día, Pagados, Archivados. Orden: urgencia, mayor deuda, nombre o más recientes. |
+| **Perfil del cliente** | Todo de la persona: datos, llamar o WhatsApp, cuánto debe y cuánto ha pagado, todos sus préstamos (activos, pagados y archivados), historial de pagos y estado de cuenta en PDF. |
+| **Cobrar** | Lo atrasado, lo que vence hoy y lo de los próximos 3 días, con el botón **Recordar** (WhatsApp listo) y **+ Abono**. |
+| **Análisis** | Totales, reporte por período (cobrado, intereses ganados, por forma de pago, quiénes más pagaron), gráficas y ranking. |
+| **⋮ → Ajustes** | Cuenta y nube, notificaciones, backup, PIN y tus datos (para recibos, PDF y mensajes). |
 
-Al tocar el indicador se sincroniza de inmediato.
+Cada abono guarda la **forma de pago** (efectivo, Nequi, Daviplata, transferencia) y puede llevar la **foto del comprobante**. Cada abono tiene su **recibo con número consecutivo** (REC-0001, REC-0002…).
 
-## Recuperar algo borrado o cambiado por error
+---
 
-Menú **⋮ → Recuperar datos borrados o cambiados**: muestra las versiones anteriores de cada deudor
-(antes de editar, eliminados, etc.). Pulsa **Restaurar** en la que quieras. La versión que reemplazas
-también queda guardada, así que puedes deshacerlo.
+## Configuración
 
-## Backups adicionales
+### Paso 1 · Lo básico (ya hecho)
 
-Aunque todo está en la nube, de vez en cuando (por ejemplo cada mes) usa **⋮ → Guardar backup**
-y guarda el archivo en Google Drive. Es una copia extra en tus manos.
+`supabase/deudores.sql`, GitHub Pages y la *Redirect URL* ya están configurados.
+
+### Paso 2 · Perfiles, fotos y notificaciones (`supabase/deudores-2.sql`)
+
+1. Entra en <https://supabase.com/dashboard> y abre el proyecto de MotoContable.
+2. Ve a **SQL Editor → New query**.
+3. Copia todo el contenido de [`supabase/deudores-2.sql`](supabase/deudores-2.sql), pégalo y pulsa **Run**.
+4. Abajo deben aparecer 5 filas: las colecciones (terminan en `'deudores_ajustes'`), la carpeta `deudores-comprobantes` y 3 tablas `dd_push_…`.
+
+Este archivo no borra ni cambia ningún dato. Mientras no lo ejecutes, la app avisa *"Falta un paso en Supabase"*. Tus préstamos se siguen guardando en la nube; los perfiles y los ajustes quedan en el dispositivo y suben solos cuando lo ejecutes.
+
+### Paso 3 · La función de notificaciones (`deudores-avisos`)
+
+1. En Supabase, en el menú izquierdo, abre **Edge Functions**.
+2. Pulsa **Deploy a new function** y elige **Via Editor**.
+3. En el nombre escribe exactamente: `deudores-avisos`.
+4. Borra el código de ejemplo. Copia todo el contenido de [`supabase/functions/deudores-avisos/index.ts`](supabase/functions/deudores-avisos/index.ts) y pégalo.
+5. Pulsa **Deploy function**. Deja activada la opción **Verify JWT**, que viene por defecto.
+
+La función crea sola sus claves de seguridad la primera vez. No tienes que copiar ninguna clave.
+
+### Paso 4 · Programar el aviso diario (`supabase/deudores-3-avisos.sql`)
+
+1. **SQL Editor → New query**, pega el contenido de [`supabase/deudores-3-avisos.sql`](supabase/deudores-3-avisos.sql) y pulsa **Run**.
+2. Al final debe aparecer la tarea `deudores-avisos` con `active = true`.
+
+Si sale un error con `pg_cron` o `pg_net`, actívalos en **Database → Extensions** (busca `pg_cron` y `pg_net` y actívalos) y vuelve a ejecutar el archivo.
+
+### Paso 5 · Activar las notificaciones en el iPhone
+
+Necesitas iOS 16.4 o superior.
+
+1. Abre la app en **Safari** y toca **Compartir ⬆️ → Agregar a inicio**. Si ya la tenías, bórrala de la pantalla de inicio y vuelve a agregarla.
+2. Abre **Mis Deudores desde el ícono** de la pantalla de inicio e inicia sesión.
+3. Ve a **⋮ → Ajustes → Notificaciones → Activar notificaciones** y toca **Permitir**.
+4. Te llegará una notificación de prueba: *"✅ Mis Deudores · Las notificaciones funcionan…"*.
+5. En **Hora del aviso diario** elige a qué hora quieres el resumen (por defecto 8:00 a. m.).
+
+Cada día, a esa hora, te llega como cualquier notificación de una app:
+
+- 🔴 **Cobros para hoy**: lo atrasado y lo que vence hoy, con nombres y valores.
+- 🟡 **Mañana vencen…**: lo que vence mañana.
+- 💾 **Es hora de tu backup**: cuando toca hacer backup. Se repite cada 3 días hasta que lo hagas.
+
+Al tocarla se abre la app en la pestaña **Cobrar** o en el backup. Las notificaciones llevan el ícono verde **$** de la app y el emoji de color al inicio, para distinguirlas de las demás. iOS no permite cambiar el color de fondo de una notificación.
+
+---
+
+## Backup
+
+- En **⋮ → Ajustes → Backup** eliges cada cuánto te lo recuerda: cada semana, cada 15 días o cada mes.
+- Cuando toca, la app te lo pide al abrir y también te llega la notificación 💾.
+- En el iPhone, **Descargar backup** abre el menú de compartir. Elige **Guardar en Archivos** (iCloud Drive), tu correo o Google Drive.
+- El backup trae préstamos, clientes y ajustes. El PIN no se incluye.
+- **Cargar archivo backup** nunca borra nada y no duplica: primero muestra cuántos son nuevos.
+
+## PIN y privacidad
+
+- **⋮ → Ajustes → Seguridad → Poner PIN**: un PIN de 4 números que se pide al abrir la app y al volver después de 1 minuto. Es el mismo en todos tus dispositivos.
+- ¿Olvidaste el PIN? Toca **¿Olvidaste tu PIN?** y escribe la contraseña de tu cuenta.
+- El botón 👁️ de arriba oculta los montos cuando le muestras la pantalla a alguien.
+
+---
+
+## Pruebas automáticas
+
+En `tests/` hay pruebas que revisan la app completa en un navegador real, con dos dispositivos y una nube simulada. Revisan:
+
+- clientes y perfiles, préstamos, cuotas y abonos;
+- confirmaciones, recibos, PDF, reportes, PIN y backup;
+- conflictos entre dispositivos, el modo sin internet y el cifrado de las notificaciones.
+
+GitHub las ejecuta solo en cada cambio (pestaña **Actions**). Para correrlas en un computador:
+
+```bash
+cd tests
+npm install
+npx playwright install chromium
+npm test
+```
+
+Lo que queda para más adelante está en [PENDIENTES.md](PENDIENTES.md).
