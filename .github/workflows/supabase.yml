@@ -1,0 +1,59 @@
+# Sube a Supabase, sin pasos a mano:
+#  - la funcion deudores-avisos, cada vez que cambia en main;
+#  - un archivo .sql de supabase/, cuando se pide desde la pestana Actions (Run workflow).
+# Necesita el secreto SUPABASE_ACCESS_TOKEN (Settings -> Secrets and variables -> Actions).
+name: Supabase
+
+on:
+  push:
+    branches: [main]
+    paths: ['supabase/functions/**']
+  workflow_dispatch:
+    inputs:
+      sql:
+        description: 'Archivo .sql de la carpeta supabase/ para ejecutar (vacio = solo subir la funcion)'
+        required: false
+        default: ''
+
+concurrency: supabase
+
+env:
+  PROYECTO: llyovzgwdqoeunvyczcy
+  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+jobs:
+  funcion:
+    if: github.event_name == 'push' || inputs.sql == ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Subir la funcion deudores-avisos
+        run: supabase functions deploy deudores-avisos --project-ref "$PROYECTO" --use-api
+
+  sql:
+    if: github.event_name == 'workflow_dispatch' && inputs.sql != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ejecutar el archivo SQL
+        env:
+          ARCHIVO: ${{ inputs.sql }}
+        run: |
+          case "$ARCHIVO" in
+            */*|*..*) echo "Solo archivos de la carpeta supabase/, por ejemplo deudores-2.sql"; exit 1 ;;
+            *.sql) ;;
+            *) echo "Debe terminar en .sql"; exit 1 ;;
+          esac
+          test -f "supabase/$ARCHIVO" || { echo "No existe supabase/$ARCHIVO"; exit 1; }
+          jq -Rs '{query: .}' "supabase/$ARCHIVO" > cuerpo.json
+          codigo=$(curl -sS -o respuesta.json -w '%{http_code}' -X POST \
+            "https://api.supabase.com/v1/projects/$PROYECTO/database/query" \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'Content-Type: application/json' \
+            --data @cuerpo.json)
+          echo "Respuesta ($codigo):"; head -c 4000 respuesta.json; echo
+          test "$codigo" -lt 300

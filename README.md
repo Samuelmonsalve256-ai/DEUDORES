@@ -87,6 +87,12 @@ Al tocarla se abre la app en la pestaña **Cobrar** o en el backup. Las notifica
 
 ---
 
+## Cambios automáticos
+
+La acción **Supabase** (`.github/workflows/supabase.yml`) sube sola la función de notificaciones cuando cambia en `main`. También ejecuta un archivo `.sql` de `supabase/` cuando se pide desde **Actions → Supabase → Run workflow**. Usa el secreto `SUPABASE_ACCESS_TOKEN`, guardado en **Settings → Secrets and variables → Actions** de este repositorio.
+
+---
+
 ## Backup
 
 - En **⋮ → Ajustes → Backup** eliges cada cuánto te lo recuerda: cada semana, cada 15 días o cada mes.
