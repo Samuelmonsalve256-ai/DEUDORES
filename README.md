@@ -21,12 +21,36 @@ Los datos se guardan en la misma cuenta y la misma base de datos (Supabase) que 
 | Pantalla | Para qué sirve |
 |---|---|
 | **Deudores** | Un cliente por tarjeta, ordenados por urgencia (lo atrasado primero). Filtros: Todos, Vencidos, Al día, Pagados, Archivados. Orden: urgencia, mayor deuda, nombre o más recientes. |
-| **Perfil del cliente** | Todo de la persona: datos, llamar o WhatsApp, cuánto debe y cuánto ha pagado, todos sus préstamos (activos, pagados y archivados), historial de pagos y estado de cuenta en PDF. |
-| **Cobrar** | Lo atrasado, lo que vence hoy y lo de los próximos 3 días, con el botón **Recordar** (WhatsApp listo) y **+ Abono**. |
+| **Perfil del cliente** | Todo de la persona: foto, cédula (frente y reverso), calificación ⭐, datos, llamar o WhatsApp, cuánto debe y cuánto ha pagado, sus promesas de pago, todos sus préstamos, historial de pagos y estado de cuenta en PDF. |
+| **Cobrar** | Lo atrasado, lo que vence hoy y lo de los próximos 3 días, con **Recordar** (WhatsApp listo), **🤝 Promesa** y **+ Abono**. |
+| **Compromisos** | Las promesas de pago: lo que cada cliente dijo que pagaba y qué día. Para hoy, las que no cumplieron, las próximas y el historial. |
 | **Análisis** | Totales, reporte por período (cobrado, intereses ganados, por forma de pago, quiénes más pagaron), gráficas y ranking. |
 | **⋮ → Ajustes** | Cuenta y nube, notificaciones, backup, PIN y tus datos (para recibos, PDF y mensajes). |
 
-Cada abono guarda la **forma de pago** (efectivo, Nequi, Daviplata, transferencia) y puede llevar la **foto del comprobante**. Cada abono tiene su **recibo con número consecutivo** (REC-0001, REC-0002…).
+Cada abono guarda la **forma de pago** (efectivo, Nequi, Daviplata, transferencia) y puede llevar la **foto del comprobante**. Cada abono tiene su **recibo con número consecutivo** (REC-0001, REC-0002…), que se asigna al registrarlo y nunca se repite.
+
+### Fotos del cliente
+
+- **Foto de perfil:** toca el círculo de la persona en su perfil. Reemplaza las iniciales en la lista.
+- **Cédula (frente y reverso):** en el perfil, debajo de los botones de contacto. Tócala para verla, cambiarla o borrarla.
+- Las fotos van a la nube privada (solo tu cuenta las ve). Sin internet quedan en el dispositivo (⏳) y se suben solas cuando vuelve la conexión.
+- Al borrar un abono, un préstamo o un cliente, sus fotos se borran para siempre.
+
+### Calificación ⭐ (automática)
+
+Cada cliente tiene de 1 a 5 estrellas según lo puntual que ha sido: mira cada cuota vencida y cuántos días después se pagó. Las promesas que no cumplió bajan la nota. Se ve en su perfil y al prestarle.
+
+### Promesas de pago (pestaña Compromisos)
+
+Cuando un cliente pide plazo, toca **🤝 Promesa** (en su perfil o en Cobrar) y anota qué día dijo que paga y cuánto.
+
+- Ese día llega el aviso 🤝 y aparece en **Para hoy**.
+- Se marca **cumplida** sola cuando registras los abonos.
+- Si pasa la fecha sin pagar, queda en **No cumplieron**. Toca la promesa para darle una nueva fecha: la anterior queda en el historial.
+
+### Lista de no prestar 🚫
+
+En **Editar datos** del cliente marca **No volver a prestarle** y escribe el motivo. Sale 🚫 junto a su nombre, aparece el filtro **No prestar** y, si intentas prestarle, la app pregunta antes.
 
 ---
 
@@ -77,7 +101,10 @@ Cada día, a esa hora, te llega como cualquier notificación de una app:
 
 - 🔴 **Cobros para hoy**: lo atrasado y lo que vence hoy, con nombres y valores.
 - 🟡 **Mañana vencen…**: lo que vence mañana.
+- 🤝 **Promesas de pago para hoy**: quién prometió pagarte hoy y cuánto falta.
 - 💾 **Es hora de tu backup**: cuando toca hacer backup. Se repite cada 3 días hasta que lo hagas.
+
+Con **Avisos discretos** (en Ajustes) la notificación solo dice cuántos cobros hay, sin nombres ni valores, porque se ve en la pantalla bloqueada.
 
 El segundo aviso (en la tarde) dice 🔴 **Siguen pendientes hoy** y trae solo lo que todavía no se ha pagado. Si ya cobraste todo, no llega. El backup se recuerda solo en el primero.
 
@@ -99,11 +126,14 @@ La acción **Supabase** (`.github/workflows/supabase.yml`) sube sola la función
 - Cuando toca, la app te lo pide al abrir y también te llega la notificación 💾.
 - En el iPhone, **Descargar backup** abre el menú de compartir. Elige **Guardar en Archivos** (iCloud Drive), tu correo o Google Drive.
 - El backup trae préstamos, clientes y ajustes. El PIN no se incluye.
-- **Cargar archivo backup** nunca borra nada y no duplica: primero muestra cuántos son nuevos.
+- **Cargar archivo backup** nunca borra nada y no duplica: primero muestra cuántos son nuevos. También puede recuperar tus datos del negocio. Dos clientes con el mismo nombre solo se unen si tienen la misma cédula.
+- Las fotos no van en el backup: están en la nube.
 
 ## PIN y privacidad
 
-- **⋮ → Ajustes → Seguridad → Poner PIN**: un PIN de 4 números que se pide al abrir la app y al volver después de 1 minuto. Es el mismo en todos tus dispositivos.
+- **⋮ → Ajustes → Seguridad → Poner PIN**: un PIN de 4 números que se pide al abrir la app y al volver después de 1 minuto. Es el mismo en todos tus dispositivos. En el Mac se puede escribir con el teclado.
+- Con 5 intentos fallidos hay que esperar 1 minuto para volver a intentar.
+- **Face ID / Touch ID:** con el PIN puesto, en **Ajustes → Seguridad → Activar Face ID** (en cada dispositivo). Al abrir la app entras con la cara o la huella; el PIN sigue sirviendo.
 - ¿Olvidaste el PIN? Toca **¿Olvidaste tu PIN?** y escribe la contraseña de tu cuenta.
 - El botón 👁️ de arriba oculta los montos cuando le muestras la pantalla a alguien.
 

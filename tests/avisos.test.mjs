@@ -67,5 +67,19 @@ ok(fn.avisoDeLaHora({avisos: {horas: [8, 17], activos: false}}, 8) === null, 'av
 const tarde = fn.armarMensajes(av, {backup: {frecuencia: 'mensual', ultimo: '2026-09-09'}}, hoy, {primera: false});
 ok(tarde.length === 2 && tarde[0].title.startsWith('🔴 Siguen pendientes hoy') && !tarde.some(x => x.title.startsWith('💾')), 'avisos: el de la tarde dice "Siguen pendientes" y no repite el backup');
 
+// Promesas de pago y avisos discretos
+const clientesP = [{id: 'c1', nombre: 'JUAN PEREZ GOMEZ', promesas: [
+  {id: 'p1', fecha: hoy, monto: 200000, desde: '2026-10-05', prestamoId: ''},
+  {id: 'p2', fecha: hoy, monto: 50000, desde: '2026-10-05', estado: 'cumplida'},
+  {id: 'p3', fecha: '2026-10-12', monto: 10000, desde: '2026-10-05'}]},
+  {id: 'c2', nombre: 'ANA', promesas: [{id: 'p4', fecha: hoy, monto: 100000, desde: '2026-10-05', prestamoId: 'd2'}]}];
+const prestP = [{id: 'd1', clienteId: 'c1', abonos: [{monto: 50000, fecha: '2026-10-06'}]}, {id: 'd2', clienteId: 'c2', abonos: [{monto: 100000, fecha: '2026-10-08'}]}];
+const ph = fn.promesasDeHoy(clientesP, prestP, hoy);
+ok(ph.length === 1 && ph[0].nombre === 'JUAN PEREZ' && ph[0].monto === 150000, 'promesas: solo la de hoy sin cumplir (Juan, faltan $150.000); Ana ya pago y la marcada cumplida no cuenta');
+const conProm = fn.armarMensajes({atrasados: [], deHoy: [], deManana: [], promesas: ph}, {backup: {frecuencia: 'mensual', ultimo: '2026-10-01'}}, hoy);
+ok(conProm.length === 1 && conProm[0].title.startsWith('🤝') && /JUAN PEREZ \$150\.000/.test(conProm[0].body) && /tab=promesas/.test(conProm[0].url), 'promesas: llega el aviso 🤝 con nombre y valor, y abre Compromisos');
+const disc = fn.armarMensajes(Object.assign({}, av, {promesas: ph}), {avisos: {discretos: true}, backup: {frecuencia: 'mensual', ultimo: '2026-10-01'}}, hoy);
+ok(disc.length === 3 && disc.every(m => !/JUAN|ANA|\$/.test(m.title + m.body)), 'avisos discretos: sin nombres ni valores (' + disc.map(m => m.body).join(' | ') + ')');
+
 console.log(fallos ? '\n' + fallos + ' FALLAS (avisos)' : '\nAVISOS: TODO OK');
 process.exit(fallos ? 1 : 0);

@@ -51,7 +51,7 @@ function crear({conSQLNuevo = true} = {}) {
   B.tabla = (uid, q) => {
     if (q.table === 'mc_historial') {
       let h = B.hist.filter(x => x.uid === uid);
-      q.filtros.forEach(([c, v]) => { h = h.filter(x => x[c] === v); });
+      q.filtros.forEach(([c, v, op]) => { h = h.filter(x => op === 'in' ? v.includes(x[c]) : x[c] === v); });
       h = h.slice().sort((a, b) => b.hist_id - a.hist_id);
       if (q.lim) h = h.slice(0, q.lim);
       return {data: h};

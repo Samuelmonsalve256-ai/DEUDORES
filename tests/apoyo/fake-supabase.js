@@ -33,7 +33,7 @@
       from(table) {
         const q = {table, op: 'select', filtros: [], orden: null, lim: null, datos: null};
         const b = {
-          select() { return b; }, eq(c, v) { q.filtros.push([c, v]); return b; }, order(c, o) { q.orden = [c, o]; return b; },
+          select() { return b; }, eq(c, v) { q.filtros.push([c, v]); return b; }, in(c, v) { q.filtros.push([c, v, 'in']); return b; }, order(c, o) { q.orden = [c, o]; return b; },
           limit(n) { q.lim = n; return b; }, upsert(d) { q.op = 'upsert'; q.datos = d; return b; }, delete() { q.op = 'delete'; return b; },
           then(res, rej) { return call('from', {uid: sess(), q}).then(r => res(r.error ? {data: null, error: r.error} : {data: r.data, error: null}), rej); }
         };
@@ -41,6 +41,7 @@
       },
       storage: {from(bucket) { return {
         async upload(path, blob, opts) { const r = await call('storage/upload', {uid: sess(), bucket, path, tipo: opts && opts.contentType, b64: await blobABase64(blob)}); return r.error ? {data: null, error: r.error} : {data: {path}, error: null}; },
+        async remove(paths) { const r = await call('storage/remove', {uid: sess(), bucket, paths}); return r.error ? {data: null, error: r.error} : {data: r.data, error: null}; },
         async createSignedUrl(path) { const r = await call('storage/url', {uid: sess(), bucket, path}); return r.error ? {data: null, error: r.error} : {data: {signedUrl: r.url}, error: null}; },
       }; }},
       functions: {async invoke(nombre, opts) { const r = await call('functions/' + nombre, {uid: sess(), cuerpo: (opts && opts.body) || {}}); return r.error ? {data: null, error: r.error} : {data: r.data, error: null}; }},
