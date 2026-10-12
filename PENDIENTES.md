@@ -26,6 +26,7 @@ Hay que decidir antes de hacerlo:
 
 ## Ideas que salieron al hacer los cambios
 
-- **Face ID / Touch ID** para desbloquear, en lugar del PIN. Se puede hacer con *passkeys* en el iPhone.
 - **Fotos de varios comprobantes por abono.** Hoy se guarda una foto por abono.
+- **Más datos del cliente:** otros documentos (recibo de servicios, carta laboral), dirección con mapa, trabajo, referencias y codeudor.
+- **Ruta de cobro del día**, **recordatorios de WhatsApp en serie**, **más tipos de cobro** (diario), **renovar o refinanciar**, **contrato con firma**, **panel de dinero**, **caja** y **conexión con MotoContable**.
 - **Sonido propio para las notificaciones.** El iPhone no lo permite en apps web. Solo se puede con una app nativa publicada en la App Store (necesita cuenta de Apple Developer, USD 99 al año).

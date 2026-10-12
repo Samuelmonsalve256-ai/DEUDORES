@@ -7,8 +7,9 @@
 //   accion "prueba" : (con tu sesion) envia una notificacion de prueba a tus dispositivos.
 //   accion "diario" : (la llama Supabase Cron cada hora) a las horas que elegiste en
 //                     Ajustes (1 o 2 veces al dia) revisa tus prestamos y envia: atrasados
-//                     y lo que vence hoy, lo que vence manana y (en el primer aviso) el
-//                     recordatorio de backup.
+//                     y lo que vence hoy, las promesas de pago del dia, lo que vence manana
+//                     y (en el primer aviso) el recordatorio de backup. Con "avisos discretos"
+//                     no van nombres ni valores (se ven en la pantalla bloqueada).
 //
 // No usa librerias externas: el cifrado de Web Push (RFC 8291) y la firma VAPID
 // (RFC 8292) se hacen con WebCrypto. Ver README del repositorio DEUDORES.
@@ -108,16 +109,16 @@ function diasEntre(desde, hasta) {
 }
 function calcInterest(monto, rate, d1, d2) {
   monto = parseFloat(monto) || 0; rate = parseFloat(rate) || 0;
-  if (!rate || !d1 || !d2) return monto;
+  if (!rate || !d1 || !d2) return Math.round(monto);
   const dias = Math.max(0, (new Date(d2).getTime() - new Date(d1).getTime()) / 86400000);
-  return Math.round(monto * (1 + (rate / 100) * (dias / 30.4375)) * 100) / 100;
+  return Math.round(monto * (1 + (rate / 100) * (dias / 30.4375)));
 }
 function totalDeuda(d) {
   const cuotas = d.cuotas || [];
   const calc = calcInterest(d.monto, d.interes, d.fechaPrestamo, d.fechaPago);
   if (!cuotas.length) return calc;
   const suma = cuotas.reduce((s, c) => s + (parseFloat(c.monto) || 0), 0);
-  return Math.abs(suma - calc) < 1 ? calc : suma;
+  return Math.abs(suma - calc) < 1 ? calc : Math.round(suma);
 }
 const pesos = (n) => '$' + Math.round(n || 0).toLocaleString('es-CO');
 
@@ -153,6 +154,24 @@ export function calcularAvisos(prestamos, hoy) {
   return {atrasados, deHoy, deManana};
 }
 
+/* Promesas de pago para hoy que aun no se cumplen (lo que se pago desde que prometio hasta hoy) */
+export function promesasDeHoy(clientes, prestamos, hoy) {
+  const res = [];
+  for (const c of clientes || []) {
+    for (const p of (c && c.promesas) || []) {
+      if (!p || p.fecha !== hoy || p.estado) continue;   // estado: cumplida, reprogramada o cancelada
+      const lista = (prestamos || []).filter(d => d && d.clienteId === c.id && (!p.prestamoId || d.id === p.prestamoId));
+      if (lista.length && lista.every(d => d.pagado)) continue;
+      const pagado = lista.reduce((s, d) => s + (d.abonos || []).reduce((t, a) =>
+        t + (a && a.fecha && a.fecha >= (p.desde || '') && a.fecha <= hoy ? (parseFloat(a.monto) || 0) : 0), 0), 0);
+      const monto = parseFloat(p.monto) || 0;
+      if (monto > 0 ? pagado >= monto - 0.5 : pagado > 0) continue;
+      res.push({nombre: String(c.nombre || 'Cliente').split(' ').slice(0, 2).join(' '), monto: monto > 0 ? monto - pagado : 0});
+    }
+  }
+  return res;
+}
+
 /* Horas del dia en que el usuario quiere avisos (1 o 2). Por defecto 8:00 a.m. */
 export function horasDeAviso(ajustes) {
   const a = (ajustes && ajustes.avisos) || {};
@@ -170,18 +189,33 @@ export function avisoDeLaHora(ajustes, hora) {
 
 export function armarMensajes(av, ajustes, hoy, opciones = {}) {
   const segunda = opciones.primera === false;
+  const discretos = !!(ajustes && ajustes.avisos && ajustes.avisos.discretos);
   const msgs = [];
-  const lista = (xs) => xs.slice(0, 4).map(x => x.nombre + ' ' + pesos(x.monto)).join(', ') + (xs.length > 4 ? ' y ' + (xs.length - 4) + ' más' : '');
+  const lista = (xs) => xs.slice(0, 4).map(x => x.nombre + (x.monto > 0 ? ' ' + pesos(x.monto) : '')).join(', ') + (xs.length > 4 ? ' y ' + (xs.length - 4) + ' más' : '');
+  const n = (k, uno, varios) => k + ' ' + (k === 1 ? uno : varios);
   if (av.atrasados.length || av.deHoy.length) {
     const partes = [];
-    if (av.deHoy.length) partes.push('Hoy: ' + lista(av.deHoy));
-    if (av.atrasados.length) partes.push('Atrasados (' + av.atrasados.length + '): ' + pesos(av.atrasados.reduce((s, x) => s + x.monto, 0)) + ' — ' + lista(av.atrasados));
     const total = av.deHoy.concat(av.atrasados).reduce((s, x) => s + x.monto, 0);
-    msgs.push({title: (segunda ? '🔴 Siguen pendientes hoy · ' : '🔴 Cobros para hoy · ') + pesos(total), body: partes.join('\n'), tag: 'dd-cobros', url: URL_APP + '?tab=cobrar'});
+    if (discretos) {
+      if (av.deHoy.length) partes.push(n(av.deHoy.length, 'cobro para hoy', 'cobros para hoy'));
+      if (av.atrasados.length) partes.push(n(av.atrasados.length, 'atrasado', 'atrasados'));
+      msgs.push({title: segunda ? '🔴 Siguen pendientes hoy' : '🔴 Cobros para hoy', body: 'Tienes ' + partes.join(' y ') + '. Toca para verlos.', tag: 'dd-cobros', url: URL_APP + '?tab=cobrar'});
+    } else {
+      if (av.deHoy.length) partes.push('Hoy: ' + lista(av.deHoy));
+      if (av.atrasados.length) partes.push('Atrasados (' + av.atrasados.length + '): ' + pesos(av.atrasados.reduce((s, x) => s + x.monto, 0)) + ' — ' + lista(av.atrasados));
+      msgs.push({title: (segunda ? '🔴 Siguen pendientes hoy · ' : '🔴 Cobros para hoy · ') + pesos(total), body: partes.join('\n'), tag: 'dd-cobros', url: URL_APP + '?tab=cobrar'});
+    }
+  }
+  const proms = av.promesas || [];
+  if (proms.length) {
+    const total = proms.reduce((s, x) => s + x.monto, 0);
+    msgs.push(discretos
+      ? {title: '🤝 Promesas de pago para hoy', body: 'Tienes ' + n(proms.length, 'cliente que prometió', 'clientes que prometieron') + ' pagarte hoy. Toca para verlos.', tag: 'dd-promesas', url: URL_APP + '?tab=promesas'}
+      : {title: '🤝 Promesas de pago para hoy' + (total > 0 ? ' · ' + pesos(total) : ''), body: 'Prometieron pagarte hoy: ' + lista(proms), tag: 'dd-promesas', url: URL_APP + '?tab=promesas'});
   }
   if (av.deManana.length) {
     msgs.push({title: '🟡 Mañana vence' + (av.deManana.length === 1 ? '' : 'n') + ' ' + av.deManana.length + ' cuota' + (av.deManana.length === 1 ? '' : 's'),
-               body: lista(av.deManana), tag: 'dd-manana', url: URL_APP + '?tab=cobrar'});
+               body: discretos ? 'Toca para verlas.' : lista(av.deManana), tag: 'dd-manana', url: URL_APP + '?tab=cobrar'});
   }
   if (segunda) return msgs;   // el recordatorio de backup va solo en el primer aviso del dia
   const bk = (ajustes && ajustes.backup) || {};
@@ -270,8 +304,9 @@ if (typeof Deno !== 'undefined' && Deno.serve) Deno.serve(async (req) => {
       const usuarios = [...new Set((subs || []).map(s => s.user_id))];
       const resultado = [];
       for (const uid of usuarios) {
-        const filas = await db('mc_registros?user_id=eq.' + uid + '&coleccion=in.(deudores,deudores_ajustes)&deleted_at=is.null&select=coleccion,data');
+        const filas = await db('mc_registros?user_id=eq.' + uid + '&coleccion=in.(deudores,deudores_ajustes,deudores_clientes)&deleted_at=is.null&select=coleccion,data');
         const prestamos = filas.filter(f => f.coleccion === 'deudores').map(f => f.data);
+        const clientes = filas.filter(f => f.coleccion === 'deudores_clientes').map(f => f.data);
         const ajustes = (filas.find(f => f.coleccion === 'deudores_ajustes') || {}).data || {};
         const aviso = avisoDeLaHora(ajustes, hora) || (cuerpo.forzar ? {tipo: 'diario-' + hora, primera: true} : null);
         if (!aviso) continue;
@@ -279,7 +314,9 @@ if (typeof Deno !== 'undefined' && Deno.serve) Deno.serve(async (req) => {
         const marca = await db('dd_push_envios', {method: 'POST', headers: {Prefer: 'resolution=ignore-duplicates,return=representation'},
           body: JSON.stringify({user_id: uid, fecha: hoy, tipo: aviso.tipo})});
         if (!marca || !marca.length) continue;
-        const msgs = armarMensajes(calcularAvisos(prestamos, hoy), ajustes, hoy, {primera: aviso.primera});
+        const av = calcularAvisos(prestamos, hoy);
+        av.promesas = promesasDeHoy(clientes, prestamos, hoy);
+        const msgs = armarMensajes(av, ajustes, hoy, {primera: aviso.primera});
         resultado.push({usuario: uid, mensajes: msgs.length, enviadas: msgs.length ? await enviarAUsuario(uid, msgs, vapid) : 0});
       }
       return resp({hoy, hora, resultado});
