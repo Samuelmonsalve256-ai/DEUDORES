@@ -330,6 +330,20 @@ const legado = [
   const rep = await A.locator('#rep-cuerpo').innerText();
   const esperado = await evalua(A, () => { const ini = hoyISO().slice(0, 8) + '01'; let t = 0; debtors.forEach(d => (d.abonos || []).forEach(a => { if (a.fecha >= ini && a.fecha <= hoyISO()) t += a.monto; })); return money(t); });
   ok(new RegExp('cobrado[\\s\\S]*' + esperado.replace(/[$.]/g, '\\$&'), 'i').test(rep) && /Nequi/.test(rep), '4.5 reporte del mes: cobrado ' + esperado + ' y por forma de pago');
+  // Analisis nuevo: movimientos de lo prestado, grafica y detalle del mes
+  const prestMes = await evalua(A, () => { const ini = hoyISO().slice(0, 8) + '01'; return debtors.filter(d => d.fechaPrestamo >= ini && d.fechaPrestamo <= hoyISO()).length; });
+  ok(await A.locator('#rep-cuerpo .mov-ico.prestado').count() === Math.min(prestMes, 10) && prestMes > 0, 'Analisis: el reporte muestra los prestamos del mes como movimientos (' + prestMes + ')');
+  await evalua(A, () => { repFiltro = 'cobrado'; renderReporte(); });
+  ok(await A.locator('#rep-cuerpo .mov-ico.prestado').count() === 0 && await A.locator('#rep-cuerpo .mov-ico.cobrado').count() > 0, 'Analisis: el filtro "Pagos" deja solo los pagos');
+  await evalua(A, () => { repFiltro = 'todos'; renderReporte(); });
+  ok(await A.locator('#an-monthly-chart .gr-grupo').count() === 6 && await A.locator('#an-mes-sel').innerText().then(t => /Prestaste/.test(t)), 'Analisis: la grafica tiene 6 meses y muestra el mes elegido');
+  await evalua(A, () => anCambiarRango('anio'));
+  ok(await A.locator('#an-monthly-chart .gr-grupo').count() === 12, 'Analisis: "Por año" muestra los 12 meses');
+  await evalua(A, () => anCambiarRango('6'));
+  await evalua(A, () => { const h = new Date(); abrirMesDetail(h.getMonth(), h.getFullYear()); });
+  ok(/Préstamos entregados/.test(await A.locator('#mes-detail-body').innerText()), 'Analisis: el detalle del mes incluye los prestamos entregados');
+  await evalua(A, () => document.getElementById('mes-detail-overlay').classList.remove('open'));
+  ok(await A.locator('#an-ranking .rk').count() > 0 && await A.locator('#an-mes-actual .pm-barra').count() === 1, 'Analisis: ranking y progreso del mes se ven');
   await evalua(A, () => switchTab('deudores'));
 
   // ── 15. Segundo dispositivo (iPhone): ve todo, con PIN ──────────────────────
