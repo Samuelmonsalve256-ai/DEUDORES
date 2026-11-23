@@ -1,13 +1,11 @@
-# Sube a Supabase, sin pasos a mano:
-#  - la funcion deudores-avisos, cada vez que cambia en main;
-#  - un archivo .sql de supabase/, cuando se pide desde la pestana Actions (Run workflow).
+# Tareas a pedido (Actions -> Supabase -> Run workflow):
+#  - un archivo .sql de supabase/ (campo "sql"), o
+#  - volver a subir la funcion deudores-avisos (campo vacio).
+# Al publicar cambios, la funcion se sube sola desde publicar.yml (despues de las pruebas).
 # Necesita el secreto SUPABASE_ACCESS_TOKEN (Settings -> Secrets and variables -> Actions).
 name: Supabase
 
 on:
-  push:
-    branches: [main]
-    paths: ['supabase/functions/**']
   workflow_dispatch:
     inputs:
       sql:
@@ -19,11 +17,10 @@ concurrency: supabase
 
 env:
   PROYECTO: llyovzgwdqoeunvyczcy
-  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
 jobs:
   funcion:
-    if: github.event_name == 'push' || inputs.sql == ''
+    if: inputs.sql == ''
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -32,10 +29,12 @@ jobs:
         with:
           version: latest
       - name: Subir la funcion deudores-avisos
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: supabase functions deploy deudores-avisos --project-ref "$PROYECTO" --use-api
 
   sql:
-    if: github.event_name == 'workflow_dispatch' && inputs.sql != ''
+    if: inputs.sql != ''
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -43,6 +42,7 @@ jobs:
       - name: Ejecutar el archivo SQL
         env:
           ARCHIVO: ${{ inputs.sql }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           case "$ARCHIVO" in
             */*|*..*) echo "Solo archivos de la carpeta supabase/, por ejemplo deudores-2.sql"; exit 1 ;;

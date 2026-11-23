@@ -1,0 +1,84 @@
+# Publica Mis Deudores SOLO si las pruebas pasan.
+#  1. Corre todas las pruebas (tests/).
+#  2. Si pasan: publica la app en GitHub Pages y, si cambio, sube la funcion
+#     deudores-avisos a Supabase.
+# Si una prueba falla, no se publica nada y la version anterior sigue funcionando.
+# GitHub Pages debe estar en Settings -> Pages -> Source: "GitHub Actions".
+name: Publicar
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency: publicar
+
+jobs:
+  pruebas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm test
+
+  pagina:
+    needs: pruebas
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.publicar.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Juntar solo los archivos de la app
+        run: |
+          mkdir _site
+          cp index.html sw.js manifest.webmanifest icono-180.png icono-192.png icono-512.png insignia-96.png _site/
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: publicar
+        uses: actions/deploy-pages@v4
+
+  funcion:
+    needs: pruebas
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: ¿Cambio la funcion?
+        id: cambio
+        env:
+          ANTES: ${{ github.event.before }}
+        run: |
+          if [ -z "$ANTES" ] || [ "$ANTES" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$ANTES" 2>/dev/null; then
+            echo "si=true" >> "$GITHUB_OUTPUT"
+          elif git diff --name-only "$ANTES" "$GITHUB_SHA" | grep -q '^supabase/functions/'; then
+            echo "si=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "si=false" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.cambio.outputs.si == 'true'
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Subir la funcion deudores-avisos
+        if: steps.cambio.outputs.si == 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: supabase functions deploy deudores-avisos --project-ref llyovzgwdqoeunvyczcy --use-api

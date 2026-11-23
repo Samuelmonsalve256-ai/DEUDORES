@@ -1,5 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════════════
--- Mis Deudores · deudores-2.sql  (ejecutar UNA vez, despues de deudores.sql)
+-- Mis Deudores · deudores-2.sql
 --
 --  1. Permite guardar en la nube los perfiles de clientes y tus ajustes.
 --  2. Crea la carpeta privada para las fotos de los comprobantes.
@@ -9,14 +9,27 @@
 --  • Se puede ejecutar mas de una vez sin problema.
 -- ════════════════════════════════════════════════════════════════════════════
 
--- ── 1. Colecciones permitidas (MotoContable + Traspasos + Mis Deudores) ──────
-begin;
-alter table public.mc_registros drop constraint if exists mc_registros_coleccion_check;
-alter table public.mc_registros add constraint mc_registros_coleccion_check check (coleccion in
-  ('motos','movimientos','ventas','carros','contactos','metas','config',
-   'traspasos','traspasos_borradores',
-   'deudores','deudores_clientes','deudores_ajustes'));
-commit;
+-- ── 1. Colecciones permitidas: SUMA las de Mis Deudores a las que ya existan ──
+-- Lee la regla actual de mc_registros y solo le agrega lo que falte. Nunca quita
+-- colecciones de MotoContable (ni las que se agreguen en el futuro). Si la tabla no
+-- tiene regla, no hace nada (sin regla, todo esta permitido).
+do $$
+declare
+  actual  text;
+  valores text[];
+  nuevos  text[] := array['deudores','deudores_clientes','deudores_ajustes'];
+  faltan  text[];
+begin
+  select pg_get_constraintdef(oid) into actual from pg_constraint
+   where conname = 'mc_registros_coleccion_check' and conrelid = 'public.mc_registros'::regclass;
+  if actual is null then return; end if;
+  valores := array(select (regexp_matches(actual, '''([^'']+)''', 'g'))[1]);
+  faltan  := array(select x from unnest(nuevos) x where not (x = any(valores)));
+  if cardinality(faltan) = 0 then return; end if;
+  execute 'alter table public.mc_registros drop constraint mc_registros_coleccion_check';
+  execute 'alter table public.mc_registros add constraint mc_registros_coleccion_check check (coleccion in (' ||
+          (select string_agg(quote_literal(x), ',') from unnest(valores || faltan) x) || '))';
+end $$;
 
 -- ── 2. Fotos de comprobantes: carpeta privada, cada usuario solo ve las suyas ─
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -78,7 +91,7 @@ create table if not exists public.dd_push_envios (
 alter table public.dd_push_envios enable row level security;
 revoke all on table public.dd_push_envios from public, anon, authenticated;
 
--- Verificacion: debe mostrar las 12 colecciones, la carpeta y las 3 tablas
+-- Verificacion: debe mostrar las colecciones (con las de Mis Deudores), la carpeta y las 3 tablas
 select 'colecciones' as que, pg_get_constraintdef(oid) as detalle from pg_constraint where conname = 'mc_registros_coleccion_check'
 union all select 'carpeta', id from storage.buckets where id = 'deudores-comprobantes'
 union all select 'tabla', table_name from information_schema.tables where table_schema = 'public' and table_name like 'dd_push_%';

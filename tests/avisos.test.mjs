@@ -81,5 +81,23 @@ ok(conProm.length === 1 && conProm[0].title.startsWith('🤝') && /JUAN PEREZ \$
 const disc = fn.armarMensajes(Object.assign({}, av, {promesas: ph}), {avisos: {discretos: true}, backup: {frecuencia: 'mensual', ultimo: '2026-10-01'}}, hoy);
 ok(disc.length === 3 && disc.every(m => !/JUAN|ANA|\$/.test(m.title + m.body)), 'avisos discretos: sin nombres ni valores (' + disc.map(m => m.body).join(' | ') + ')');
 
+// C.7 Reintento: si el aviso no se pudo enviar, se intenta en las 2 horas siguientes (sin pisar el siguiente aviso)
+const dosH = {avisos: {horas: [8, 17]}};
+ok(fn.avisosDeLaHora(dosH, 8).map(a => a.tipo).join() === 'diario-8' && fn.avisosDeLaHora(dosH, 10).map(a => a.tipo).join() === 'diario-8' &&
+   fn.avisosDeLaHora(dosH, 11).length === 0 && fn.avisosDeLaHora(dosH, 17)[0].primera === false, 'reintento: el aviso de las 8 se puede reintentar hasta las 10; a las 11 ya no');
+ok(fn.avisosDeLaHora({avisos: {horas: [9, 10]}}, 10).map(a => a.tipo).join() === 'diario-10', 'reintento: no se mezcla con el siguiente aviso del dia');
+ok(fn.igualSeguro('abc123', 'abc123') && !fn.igualSeguro('abc123', 'abc124') && !fn.igualSeguro('', '') && !fn.igualSeguro(null, 'x'), 'la clave del cron se compara de forma segura');
+// Backup automatico cada 15 dias, guarda los 6 ultimos
+ok(fn.tocaBackup([], hoy) && fn.tocaBackup(['backup-2026-09-24.json'], hoy) && !fn.tocaBackup(['backup-2026-09-25.json', 'otro.txt'], hoy), 'backup automatico: toca cada 15 dias (y si no hay ninguno)');
+const muchos = ['01', '02', '03', '04', '05', '06', '07', '08'].map(m => 'backup-2026-' + m + '-01.json');
+ok(fn.backupsParaBorrar(muchos).join() === 'backup-2026-02-01.json,backup-2026-01-01.json', 'backup automatico: se borran los mas viejos y quedan los 6 ultimos');
+const bkAuto = fn.armarBackup([{id: 'd1'}], [{id: 'c1'}], {negocio: {nombre: 'X'}, pin: {hash: 'h'}}, '2026-10-09T13:00:00Z');
+ok(bkAuto.version === 'deudores_v4' && bkAuto.datos.length === 1 && bkAuto.clientes.length === 1 && !bkAuto.ajustes.pin && bkAuto.automatico, 'backup automatico: mismo formato que el de la app y sin el PIN');
+ok(fn.fechaColombia('2026-10-09T01:30:00Z') === '2026-10-08' && fn.fechaColombia('2026-10-09') === '2026-10-09', 'B.5 un backup a las 8:30 p.m. de Colombia cuenta como de ese dia');
+ok(fn.armarMensajes({atrasados: [], deHoy: [], deManana: []}, {backup: {frecuencia: 'nunca'}}, hoy).length === 0, 'el recordatorio de descargar el backup se puede apagar');
+// B.1 Interes por meses de calendario (prestamos nuevos) y el calculo anterior para los antiguos
+ok(fn.calcInterest(1000000, 10, '2026-02-01', '2026-03-01', 'meses') === 1100000 && fn.calcInterest(1000000, 10, '2026-01-01', '2027-01-01', 'meses') === 2200000 &&
+   fn.calcInterest(1000000, 10, '2026-02-01', '2026-03-01') === 1091992, 'B.1 la funcion de avisos calcula el interes igual que la app');
+
 console.log(fallos ? '\n' + fallos + ' FALLAS (avisos)' : '\nAVISOS: TODO OK');
 process.exit(fallos ? 1 : 0);

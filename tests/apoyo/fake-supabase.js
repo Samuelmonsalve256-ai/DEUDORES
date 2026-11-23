@@ -41,6 +41,14 @@
       },
       storage: {from(bucket) { return {
         async upload(path, blob, opts) { const r = await call('storage/upload', {uid: sess(), bucket, path, tipo: opts && opts.contentType, b64: await blobABase64(blob)}); return r.error ? {data: null, error: r.error} : {data: {path}, error: null}; },
+        async list(carpeta, opts) { const r = await call('storage/list', {uid: sess(), bucket, carpeta}); return r.error ? {data: null, error: r.error} : {data: r.data, error: null}; },
+        async download(path) {
+          const r = await call('storage/download', {uid: sess(), bucket, path});
+          if (r.error) return {data: null, error: r.error};
+          const bin = atob(r.b64), arr = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+          return {data: new Blob([arr], {type: r.tipo || 'application/octet-stream'}), error: null};
+        },
         async remove(paths) { const r = await call('storage/remove', {uid: sess(), bucket, paths}); return r.error ? {data: null, error: r.error} : {data: r.data, error: null}; },
         async createSignedUrl(path) { const r = await call('storage/url', {uid: sess(), bucket, path}); return r.error ? {data: null, error: r.error} : {data: {signedUrl: r.url}, error: null}; },
       }; }},
