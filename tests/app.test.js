@@ -343,6 +343,10 @@ const legado = [
   await evalua(A, () => { const h = new Date(); abrirMesDetail(h.getMonth(), h.getFullYear()); });
   ok(/Préstamos entregados/.test(await A.locator('#mes-detail-body').innerText()), 'Analisis: el detalle del mes incluye los prestamos entregados');
   await evalua(A, () => document.getElementById('mes-detail-overlay').classList.remove('open'));
+  await A.locator('#an-monthly-chart .gr-grupo').last().click();
+  await espera(300);
+  ok(await evalua(A, () => document.getElementById('mes-detail-overlay').classList.contains('open')) && /Por cobrar|Pagos recibidos/.test(await A.locator('#mes-detail-body').innerText()), 'Analisis: al tocar la barra del mes se abre a quién cobrar');
+  await evalua(A, () => document.getElementById('mes-detail-overlay').classList.remove('open'));
   ok(await A.locator('#an-ranking .rk').count() > 0 && await A.locator('#an-mes-actual .pm-barra').count() === 1, 'Analisis: ranking y progreso del mes se ven');
   await evalua(A, () => switchTab('deudores'));
 
