@@ -81,4 +81,4 @@ jobs:
         if: steps.cambio.outputs.si == 'true'
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-        run: supabase functions deploy deudores-avisos --project-ref llyovzgwdqoeunvyczcy --use-api
+        run: supabase functions deploy deudores-avisos --project-ref llyovzgwdqoeunvyczcy --use-api --yes

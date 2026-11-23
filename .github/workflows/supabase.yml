@@ -31,7 +31,7 @@ jobs:
       - name: Subir la funcion deudores-avisos
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-        run: supabase functions deploy deudores-avisos --project-ref "$PROYECTO" --use-api
+        run: supabase functions deploy deudores-avisos --project-ref "$PROYECTO" --use-api --yes
 
   sql:
     if: inputs.sql != ''
