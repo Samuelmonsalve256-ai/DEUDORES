@@ -383,6 +383,12 @@ body.con-perfil .btn-add:not(.perfil-acciones .btn-add), body.con-perfil .tabs-n
 .cobrar-nombre { font-weight:650; font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:flex; align-items:center; gap:6px; }
 .cobrar-sub { font-size:12.5px; color:var(--text2); }
 .cobrar-monto { font-weight:700; font-size:16px; text-align:right; white-space:nowrap; }
+.cobrar-item.atrasado .cobrar-monto { color:var(--accent2); } .cobrar-item.hoy .cobrar-monto { color:var(--amber-d); }
+.cobrar-item.atrasado { background:linear-gradient(90deg, #FDF6F5, var(--surface) 40%); }
+.cobrar-item.hoy { background:linear-gradient(90deg, #FEFAF0, var(--surface) 40%); }
+.prom-item.hoy { background:linear-gradient(90deg, #FEFAF0, var(--surface) 40%); }
+.prom-item.incumplida { background:linear-gradient(90deg, #FDF6F5, var(--surface) 40%); }
+.debtor-card.estado-overdue { background:linear-gradient(90deg, #FDF8F7, var(--surface) 35%); }
 .cobrar-acciones { grid-column:1 / -1; display:flex; gap:8px; }
 .cobrar-acciones .btn-sm { flex:1; min-width:0; }
 .cobrar-sin-tel { flex:1; font-size:12.5px; color:var(--text3); align-self:center; }
@@ -630,6 +636,33 @@ body.montos-ocultos .prom-monto, body.montos-ocultos .cal-sub, body.montos-ocult
   .pin-puntos { margin:22px 0 22px; }
 }
 
+/* ── Colores con significado (para no confundirse) ──────────────────────────────
+   verde = cobrado/pagado · rojo = vencido/por cobrar · ámbar = hoy · naranja = pronto
+   azul = prestado · violeta = compromisos */
+.chip-ico { width:30px; height:30px; border-radius:9px; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; font-size:17px; }
+.chip-ico.verde { background:var(--accent-l); color:var(--accent); }
+.chip-ico.rojo { background:var(--red-l); color:var(--accent2); }
+.chip-ico.ambar { background:var(--amber-l); color:var(--amber-d); }
+.chip-ico.naranja { background:var(--orange-l); color:var(--orange); }
+.chip-ico.azul { background:var(--blue-l); color:var(--blue); }
+.chip-ico.violeta { background:var(--violet-l); color:var(--violet); }
+.chip-ico.gris { background:var(--surface3); color:var(--text1); }
+.chip-ico.tinta { background:rgba(255,255,255,.12); color:#fff; }
+.debtor-card.urg-hoy { border-left:3px solid var(--accent3); }
+.debtor-card.urg-pronto { border-left:3px solid var(--orange); }
+.debtor-card.estado-paid { border-left:3px solid var(--accent); }
+.badge-hoy { background:var(--amber-l); color:var(--amber-d); }
+.badge-pronto { background:var(--orange-l); color:var(--orange); }
+.stat-card .stat-label .chip-ico { width:26px; height:26px; font-size:15px; border-radius:8px; }
+.pstat { position:relative; overflow:hidden; }
+.pstat::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--pc, transparent); }
+.pstat.rojo { --pc:var(--accent2); } .pstat.verde { --pc:var(--accent); } .pstat.ambar { --pc:var(--accent3); } .pstat.azul { --pc:var(--blue); }
+.pct-pill { font-size:12.5px; font-weight:700; padding:3px 10px; border-radius:99px; white-space:nowrap; }
+.pct-pill.alto { background:var(--accent-l); color:var(--accent-d); } .pct-pill.medio { background:var(--amber-l); color:var(--amber-d); } .pct-pill.bajo { background:var(--red-l); color:var(--red-d); } .pct-pill.nada { background:var(--surface3); color:var(--text2); }
+.pct-barra { height:8px; border-radius:99px; background:var(--surface3); overflow:hidden; margin:8px 0 2px; }
+.pct-barra div { height:100%; border-radius:99px; transition:width .5s ease; }
+.pct-txt { font-size:12px; color:var(--text2); }
+
 /* ── Análisis ───────────────────────────────────────────────────────────────── */
 :root { --serie-prestado:#2D5BD0; --serie-cobrado:#12925F; }
 .opts-trigger { padding:0 !important; }
@@ -640,6 +673,7 @@ body.montos-ocultos .prom-monto, body.montos-ocultos .cal-sub, body.montos-ocult
 .an-kpi.hero { background:var(--ink); border-color:var(--ink); color:#fff; }
 .an-kpi-label { font-size:12.5px; color:var(--text2); font-weight:500; display:flex; align-items:center; gap:6px; }
 .an-kpi-label i { font-size:16px; }
+.an-kpi-label .chip-ico { width:26px; height:26px; border-radius:8px; }
 .an-kpi.hero .an-kpi-label { color:rgba(255,255,255,.65); }
 .an-kpi-val { font-size:21px; font-weight:750; letter-spacing:-.02em; margin:4px 0 2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .an-kpi-val.rojo { color:var(--accent2); }
@@ -648,7 +682,8 @@ body.montos-ocultos .prom-monto, body.montos-ocultos .cal-sub, body.montos-ocult
 .an-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px; box-shadow:var(--shadow); margin-bottom:14px; }
 .an-card-cab { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
 .an-card-tit { font-size:16px; font-weight:700; display:flex; align-items:center; gap:8px; letter-spacing:-.01em; }
-.an-card-tit i { font-size:19px; color:var(--text2); }
+.an-card-tit > i { font-size:19px; color:var(--text2); }
+.an-card-tit .chip-ico i { font-size:17px; color:inherit; }
 .an-card-sub { font-size:12.5px; color:var(--text3); margin-top:2px; }
 .an-seg { display:inline-flex; background:var(--surface3); border-radius:10px; padding:3px; gap:2px; }
 .an-seg button { border:none; background:transparent; color:var(--text2); font-size:12.5px; font-weight:600; padding:6px 10px; border-radius:8px; cursor:pointer; white-space:nowrap; }
@@ -768,7 +803,16 @@ body.montos-ocultos .prom-monto, body.montos-ocultos .cal-sub, body.montos-ocult
 .mes-stat-box .lbl { font-size:12px; color:var(--text2); display:flex; align-items:center; gap:6px; font-weight:500; }
 .mes-stat-box .val { font-weight:750; font-size:16px; white-space:nowrap; margin-top:2px; }
 .mes-panel-body { overflow-y:auto; padding:.6rem 1.25rem calc(env(safe-area-inset-bottom) + 1.2rem); -webkit-overflow-scrolling:touch; }
-.mes-section-lbl { font-size:13px; font-weight:700; color:var(--text); margin:14px 0 4px; display:flex; align-items:center; gap:7px; }
+.mes-section-lbl { font-size:13.5px; font-weight:700; color:var(--text); margin:16px 0 6px; display:flex; align-items:center; gap:9px; }
+.mes-section-lbl .chip-ico { width:28px; height:28px; font-size:16px; }
+.mes-section-lbl em { font-style:normal; margin-left:auto; font-size:13px; font-weight:700; }
+.mes-grupo { border-radius:14px; padding:2px 12px; }
+.mes-grupo.rojo { background:#FDF6F5; border:1px solid var(--red-l); }
+.mes-grupo.verde { background:#F4FAF7; border:1px solid var(--accent-l); }
+.mes-grupo.azul { background:#F6F8FE; border:1px solid var(--blue-l); }
+.mes-pct { padding:12px 1.25rem 2px; }
+.mes-pct-cab { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+.mes-pct-cab strong { font-size:14px; }
 .mes-section-dot { width:9px; height:9px; border-radius:3px; flex-shrink:0; }
 .mes-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 0; border-bottom:1px solid var(--border); }
 .mes-row:last-child { border-bottom:none; }
@@ -872,17 +916,17 @@ body.montos-ocultos .gr-leyenda strong, body.montos-ocultos .gr-caja text.gr-eje
 
   <div class="summary">
     <div class="stat-card hero">
-      <div class="stat-label"><i class="ti ti-wallet"></i>Te deben en total</div>
+      <div class="stat-label"><span class="chip-ico tinta"><i class="ti ti-wallet"></i></span>Te deben en total</div>
       <div class="stat-value" id="s-total">$0</div>
       <div class="stat-sub" id="s-total-sub"></div>
     </div>
     <div class="stat-card">
-      <div class="stat-label"><i class="ti ti-alert-triangle"></i>Vencido sin pagar</div>
+      <div class="stat-label"><span class="chip-ico rojo"><i class="ti ti-alert-triangle"></i></span>Vencido sin pagar</div>
       <div class="stat-value red" id="s-vencido">$0</div>
       <div class="stat-sub" id="s-vencido-sub"></div>
     </div>
     <div class="stat-card">
-      <div class="stat-label"><i class="ti ti-users"></i>Clientes que deben</div>
+      <div class="stat-label"><span class="chip-ico azul"><i class="ti ti-users"></i></span>Clientes que deben</div>
       <div class="stat-value" id="s-count">0</div>
       <div class="stat-sub" id="s-atrasados"></div>
     </div>
@@ -933,7 +977,7 @@ body.montos-ocultos .gr-leyenda strong, body.montos-ocultos .gr-caja text.gr-eje
     <section class="an-card">
       <div class="an-card-cab">
         <div>
-          <div class="an-card-tit"><i class="ti ti-chart-bar"></i>Prestado y cobrado por mes</div>
+          <div class="an-card-tit"><span class="chip-ico azul"><i class="ti ti-chart-bar"></i></span>Prestado y cobrado por mes</div>
           <div class="an-card-sub">Toca un mes para ver a quién cobrarle y sus movimientos</div>
         </div>
         <div class="an-seg" id="an-rango">
@@ -956,7 +1000,7 @@ body.montos-ocultos .gr-leyenda strong, body.montos-ocultos .gr-caja text.gr-eje
     <section class="an-card" id="rep-box">
       <div class="an-card-cab">
         <div>
-          <div class="an-card-tit"><i class="ti ti-file-analytics"></i>Reporte por período</div>
+          <div class="an-card-tit"><span class="chip-ico violeta"><i class="ti ti-file-analytics"></i></span>Reporte por período</div>
           <div class="an-card-sub">Todo lo que prestaste y lo que te pagaron</div>
         </div>
       </div>
@@ -980,7 +1024,7 @@ body.montos-ocultos .gr-leyenda strong, body.montos-ocultos .gr-caja text.gr-eje
     <section class="an-card">
       <div class="an-card-cab">
         <div>
-          <div class="an-card-tit"><i class="ti ti-target-arrow"></i>Progreso del mes</div>
+          <div class="an-card-tit"><span class="chip-ico verde"><i class="ti ti-target-arrow"></i></span>Progreso del mes</div>
           <div class="an-card-sub" id="an-mes-sub"></div>
         </div>
       </div>
@@ -991,7 +1035,7 @@ body.montos-ocultos .gr-leyenda strong, body.montos-ocultos .gr-caja text.gr-eje
     <section class="an-card">
       <div class="an-card-cab">
         <div>
-          <div class="an-card-tit"><i class="ti ti-trophy"></i>Ranking de clientes</div>
+          <div class="an-card-tit"><span class="chip-ico ambar"><i class="ti ti-trophy"></i></span>Ranking de clientes</div>
           <div class="an-card-sub" id="an-rank-sub"></div>
         </div>
         <div class="an-seg" id="an-rank-modo">
@@ -1006,7 +1050,7 @@ body.montos-ocultos .gr-leyenda strong, body.montos-ocultos .gr-caja text.gr-eje
     <section class="an-card">
       <div class="an-card-cab">
         <div>
-          <div class="an-card-tit"><i class="ti ti-calendar-due"></i>Próximos cobros</div>
+          <div class="an-card-tit"><span class="chip-ico rojo"><i class="ti ti-calendar-due"></i></span>Próximos cobros</div>
           <div class="an-card-sub">Lo atrasado y lo que vence en los próximos 60 días</div>
         </div>
       </div>
@@ -2301,7 +2345,10 @@ function tarjetaCliente(c, r, resumenes) {
   else sub = 'Sin préstamos';
   var prox = r.proxIdx !== null ? lineaProxima(debtors[r.proxIdx], resumenes[debtors[r.proxIdx].id])
            : (r.status === 'paid' ? '<span class="prox prox-ok"><i class="ti ti-check"></i> Todo pagado</span>' : '<span class="prox">' + (r.idxs.length ? 'Sin fecha de pago' : 'Toca para agregar un préstamo') + '</span>');
-  return '<div class="debtor-card estado-' + r.status + '" data-uid="' + esc(c.id) + '">' +
+  var dlp = r.proxIdx !== null && resumenes[debtors[r.proxIdx].id] ? resumenes[debtors[r.proxIdx].id].dias : null, urg = '';
+  if (r.status === 'pending' && dlp === 0) { urg = ' urg-hoy'; badge = ['badge-hoy', 'Vence hoy']; }
+  else if (r.status === 'pending' && dlp !== null && dlp > 0 && dlp <= 3) { urg = ' urg-pronto'; badge = ['badge-pronto', 'Vence pronto']; }
+  return '<div class="debtor-card estado-' + r.status + urg + '" data-uid="' + esc(c.id) + '">' +
     '<div class="card-top" onclick="abrirPerfil(\'' + escJs(c.id) + '\')">' +
       '<div class="debtor-left">' +
         avatarHTML(c, 'avatar') +
@@ -2636,8 +2683,8 @@ function renderPerfil(primeraVez) {
     '<div class="perfil-stats">' +
       '<div class="pstat rojo"><span>Debe ahora</span><strong>' + money(r.saldo) + '</strong></div>' +
       '<div class="pstat verde"><span>Ha pagado</span><strong>' + money(r.pagado) + '</strong></div>' +
-      '<div class="pstat"><span>Vencido</span><strong' + (r.vencido > 0.5 ? ' style="color:var(--accent2)"' : '') + '>' + money(r.vencido) + '</strong></div>' +
-      '<div class="pstat"><span>Préstamos</span><strong>' + r.activos + ' activo' + (r.activos === 1 ? '' : 's') + ' / ' + r.idxs.length + '</strong></div>' +
+      '<div class="pstat' + (r.vencido > 0.5 ? ' rojo' : '') + '"><span>Vencido</span><strong' + (r.vencido > 0.5 ? ' style="color:var(--accent2)"' : '') + '>' + money(r.vencido) + '</strong></div>' +
+      '<div class="pstat azul"><span>Préstamos</span><strong>' + r.activos + ' activo' + (r.activos === 1 ? '' : 's') + ' / ' + r.idxs.length + '</strong></div>' +
     '</div>' +
     '<div class="perfil-acciones">' +
       '<button class="btn-add" onclick="openModal(null, \'' + escJs(c.id) + '\')"><i class="ti ti-plus"></i>Nuevo préstamo</button>' +
@@ -2889,7 +2936,7 @@ function renderPromesas() {
     '<div><div class="prom-cab-tit">Compromisos de pago</div><div class="prom-cab-sub">Lo que tus clientes prometieron pagar cuando pidieron plazo</div></div>' +
     '<button class="btn-sm btn-success" onclick="abrirPromesa()"><i class="ti ti-plus"></i>Nueva promesa</button></div>';
   html += '<div class="prom-resumen">' +
-    '<div class="pstat"><span>Para hoy</span><strong>' + hoy.length + '</strong></div>' +
+    '<div class="pstat ambar"><span>Para hoy</span><strong>' + hoy.length + '</strong></div>' +
     '<div class="pstat"><span>Por cobrar hoy</span><strong class="monto">' + money(totalHoy) + '</strong></div>' +
     '<div class="pstat' + (malas.length ? ' rojo' : '') + '"><span>No cumplieron</span><strong>' + malas.length + '</strong></div>' +
   '</div>';
@@ -4498,16 +4545,29 @@ function anMesesDelRango() {
 /* Lo prestado (por fecha del prestamo) y lo cobrado (por fecha del pago) de un mes */
 function movimientosDelMes(y, m) {
   var clave = y + '-' + String(m + 1).padStart(2, '0');
-  var r = {prestado: 0, cobrado: 0, nPrest: 0, nPagos: 0, porCobrar: 0, nCobrar: 0};
+  var r = {prestado: 0, cobrado: 0, nPrest: 0, nPagos: 0, porCobrar: 0, nCobrar: 0, esperado: 0, pagadoCuotas: 0};
   debtors.forEach(function(d) {
     if (String(d.fechaPrestamo || '').slice(0, 7) === clave) { r.prestado += parseFloat(d.monto) || 0; r.nPrest++; }
     allocateCuotas(d).forEach(function(c) {
-      if (c.status === 'pagada' || !c.fecha || c.fecha.slice(0, 7) !== clave) return;
-      r.porCobrar += c.status === 'parcial' ? c.restante : c.monto; r.nCobrar++;
+      if (!c.fecha || c.fecha.slice(0, 7) !== clave) return;
+      r.esperado += c.monto;
+      if (c.status === 'pagada') { r.pagadoCuotas += c.monto; return; }
+      var falta = c.status === 'parcial' ? c.restante : c.monto;
+      r.pagadoCuotas += c.monto - falta;
+      r.porCobrar += falta; r.nCobrar++;
     });
     (d.abonos || []).forEach(function(a) { if (String(a.fecha || '').slice(0, 7) === clave) { r.cobrado += parseFloat(a.monto) || 0; r.nPagos++; } });
   });
+  r.pct = r.esperado > 0 ? Math.round(r.pagadoCuotas / r.esperado * 100) : null;
   return r;
+}
+/* Pastilla y barra del % cobrado, con color segun lo que va: verde, ambar o rojo */
+function nivelPct(p) { return p === null ? 'nada' : p >= 80 ? 'alto' : p >= 40 ? 'medio' : 'bajo'; }
+function colorPct(p) { return {alto: 'var(--accent)', medio: 'var(--accent3)', bajo: 'var(--accent2)', nada: 'var(--text4)'}[nivelPct(p)]; }
+function bloquePct(r) {
+  if (r.pct === null) return '<div class="pct-txt">Ese mes no vencía ninguna cuota.</div>';
+  return '<div class="pct-barra"><div style="width:' + r.pct + '%;background:' + colorPct(r.pct) + '"></div></div>' +
+    '<div class="pct-txt">Cobrado el ' + r.pct + '% de ' + money(r.esperado) + ' que vencía ese mes' + (r.porCobrar > 0.5 ? ' · faltan ' + money(r.porCobrar) : ' · todo cobrado') + '</div>';
 }
 
 /* Datos del mes actual */
@@ -4571,8 +4631,9 @@ function renderKPIs() {
     kpiCard('', 'cash-banknote', 'Prestado en total', money(prestado), s(debtors.length, 'préstamo', 'préstamos') + ' desde el inicio');
 }
 function kpiCard(cls, ico, label, val, sub, valCls) {
+  var color = {wallet: 'tinta', 'circle-check': 'verde', 'alert-triangle': 'rojo', 'cash-banknote': 'azul'}[ico] || 'gris';
   return '<div class="an-kpi ' + cls + '">' +
-    '<div class="an-kpi-label"><i class="ti ti-' + ico + '"></i>' + label + '</div>' +
+    '<div class="an-kpi-label"><span class="chip-ico ' + color + '"><i class="ti ti-' + ico + '"></i></span>' + label + '</div>' +
     '<div class="an-kpi-val ' + (valCls || '') + '">' + val + '</div>' +
     '<div class="an-kpi-sub">' + sub + '</div>' +
   '</div>';
@@ -4644,13 +4705,13 @@ function pintarMesElegido(datos) {
   if (!d) { document.getElementById('an-mes-sel').innerHTML = ''; return; }
   var dif = d.cobrado - d.prestado;
   document.getElementById('an-mes-sel').innerHTML =
-    '<div class="gr-sel-cab"><strong>' + MESES_FULL[d.m] + ' ' + d.y + '</strong>' +
+    '<div class="gr-sel-cab"><strong>' + MESES_FULL[d.m] + ' ' + d.y + ' <span class="pct-pill ' + nivelPct(d.pct) + '">' + (d.pct === null ? 'Sin cuotas' : d.pct + '% cobrado') + '</span></strong>' +
       '<button class="btn-sm" onclick="abrirMesDetail(' + d.m + ',' + d.y + ')"><i class="ti ti-list-details"></i>' + (d.nCobrar ? 'A quién cobrar' : 'Ver detalle') + '</button></div>' +
     '<div class="gr-sel-num">' +
-      '<div><span><i class="pt pt-prestado" style="width:8px;height:8px;border-radius:2px;display:inline-block"></i>Prestaste</span><strong>' + money(d.prestado) + '</strong><span>' + d.nPrest + ' préstamo' + (d.nPrest === 1 ? '' : 's') + '</span></div>' +
-      '<div><span><i class="pt pt-cobrado" style="width:8px;height:8px;border-radius:2px;display:inline-block"></i>Te pagaron</span><strong>' + money(d.cobrado) + '</strong><span>' + d.nPagos + ' pago' + (d.nPagos === 1 ? '' : 's') + '</span></div>' +
-      '<div><span><i class="ti ti-alert-circle" style="font-size:13px"></i>Falta cobrar</span><strong' + (d.porCobrar > 0.5 ? ' style="color:var(--accent2)"' : '') + '>' + money(d.porCobrar) + '</strong><span>' + d.nCobrar + ' cuota' + (d.nCobrar === 1 ? '' : 's') + ' sin pagar</span></div>' +
-    '</div>';
+      '<div><span><i class="pt pt-prestado" style="width:8px;height:8px;border-radius:2px;display:inline-block"></i>Prestaste</span><strong style="color:var(--blue)">' + money(d.prestado) + '</strong><span>' + d.nPrest + ' préstamo' + (d.nPrest === 1 ? '' : 's') + '</span></div>' +
+      '<div><span><i class="pt pt-cobrado" style="width:8px;height:8px;border-radius:2px;display:inline-block"></i>Te pagaron</span><strong style="color:var(--accent)">' + money(d.cobrado) + '</strong><span>' + d.nPagos + ' pago' + (d.nPagos === 1 ? '' : 's') + '</span></div>' +
+      '<div><span><i class="ti ti-alert-circle" style="font-size:13px;color:var(--accent2)"></i>Falta cobrar</span><strong' + (d.porCobrar > 0.5 ? ' style="color:var(--accent2)"' : '') + '>' + money(d.porCobrar) + '</strong><span>' + d.nCobrar + ' cuota' + (d.nCobrar === 1 ? '' : 's') + ' sin pagar</span></div>' +
+    '</div>' + bloquePct(d);
 }
 
 /* Progreso del mes actual: una sola barra (cobrado, vencido y lo que falta por vencer) */
@@ -4759,19 +4820,24 @@ function abrirMesDetail(mes, anio) {
   var suma = function(l, f) { return l.reduce(function(s, x) { return s + f(x); }, 0); };
   var totP = suma(prestamos, function(x) { return x.monto; }), totC = suma(cobros, function(x) { return x.monto; });
   var totF = suma(pendientes, function(x) { return x.status === 'parcial' ? x.restante : x.monto; });
+  var r = movimientosDelMes(anio, mes);
   document.getElementById('mes-panel-stats').innerHTML =
-    '<div class="mes-stat-box"><div class="lbl"><i class="pt pt-prestado" style="width:8px;height:8px;border-radius:2px;display:inline-block"></i>Prestado</div><div class="val">' + money(totP) + '</div></div>' +
-    '<div class="mes-stat-box"><div class="lbl"><i class="pt pt-cobrado" style="width:8px;height:8px;border-radius:2px;display:inline-block"></i>Cobrado</div><div class="val">' + money(totC) + '</div></div>' +
-    '<div class="mes-stat-box"><div class="lbl"><i class="ti ti-alert-circle"></i>Falta cobrar</div><div class="val"' + (totF > 0.5 ? ' style="color:var(--accent2)"' : '') + '>' + money(totF) + '</div></div>';
-  var fila = function(nombre, sub, monto, color, cid) {
-    return '<div class="mes-row"' + (cid ? ' onclick="cerrarMesDetail();abrirPerfil(\'' + escJs(cid) + '\')"' : '') + '><div class="mes-row-left"><div class="mes-row-name">' + esc(nombre) + '</div><div class="mes-row-sub">' + sub + '</div></div>' +
+    '<div class="mes-stat-box"><div class="lbl"><span class="chip-ico rojo" style="width:22px;height:22px;font-size:13px;border-radius:7px"><i class="ti ti-alert-circle"></i></span>Por cobrar</div><div class="val"' + (totF > 0.5 ? ' style="color:var(--accent2)"' : '') + '>' + money(totF) + '</div></div>' +
+    '<div class="mes-stat-box"><div class="lbl"><span class="chip-ico verde" style="width:22px;height:22px;font-size:13px;border-radius:7px"><i class="ti ti-arrow-down-left"></i></span>Cobrado</div><div class="val" style="color:var(--accent)">' + money(totC) + '</div></div>' +
+    '<div class="mes-stat-box"><div class="lbl"><span class="chip-ico azul" style="width:22px;height:22px;font-size:13px;border-radius:7px"><i class="ti ti-arrow-up-right"></i></span>Prestado</div><div class="val" style="color:var(--blue)">' + money(totP) + '</div></div>' +
+    '<div class="mes-pct" style="grid-column:1/-1;padding:4px 0 0"><div class="mes-pct-cab"><strong>Cuotas del mes</strong><span class="pct-pill ' + nivelPct(r.pct) + '">' + (r.pct === null ? 'Sin cuotas' : r.pct + '% cobrado') + '</span></div>' + bloquePct(r) + '</div>';
+  var fila = function(nombre, sub, monto, color, cid, ico) {
+    return '<div class="mes-row"' + (cid ? ' onclick="cerrarMesDetail();abrirPerfil(\'' + escJs(cid) + '\')"' : '') + '>' + (ico || '') + '<div class="mes-row-left">' +
+      '<div class="mes-row-name">' + esc(nombre) + '</div><div class="mes-row-sub">' + sub + '</div></div>' +
       '<div class="mes-row-monto"' + (color ? ' style="color:' + color + '"' : '') + '>' + monto + '</div></div>';
   };
-  var titulo = function(txt, n, color) { return '<div class="mes-section-lbl"><span class="mes-section-dot" style="background:' + color + '"></span>' + txt + ' (' + n + ')</div>'; };
+  var titulo = function(txt, n, color, ico, total) {
+    return '<div class="mes-section-lbl"><span class="chip-ico ' + color + '"><i class="ti ti-' + ico + '"></i></span>' + txt + ' (' + n + ')<em>' + money(total) + '</em></div>';
+  };
   var html = '';
   if (!prestamos.length && !cobros.length && !pendientes.length) html = '<div class="mes-empty"><div class="icon"><i class="ti ti-calendar-off"></i></div>Sin movimientos este mes</div>';
   if (pendientes.length) {
-    html += titulo('Por cobrar', pendientes.length, 'var(--accent2)');
+    html += titulo('Por cobrar', pendientes.length, 'rojo', 'alert-circle', totF) + '<div class="mes-grupo rojo">';
     pendientes.forEach(function(x) {
       var dl = daysLeft(x.fecha), b = dl < 0 ? ['vencido', 'Venció hace ' + Math.abs(dl) + ' día' + (Math.abs(dl) === 1 ? '' : 's')] : dl === 0 ? ['hoy', 'Vence hoy'] : dl === 1 ? ['pronto', 'Mañana'] : dl <= 3 ? ['pronto', 'En ' + dl + ' días'] : ['ok', 'En ' + dl + ' días'];
       html += fila(x.nombre, 'Cuota ' + x.cuota + ' de ' + x.total + ' · ' + fechaCorta(x.fecha) + '<span class="mes-badge ' + b[0] + '">' + b[1] + '</span>' +
@@ -4779,14 +4845,17 @@ function abrirMesDetail(mes, anio) {
         (x.tel && !x.pagado && x.ri >= 0 ? '<button class="btn-sm btn-wa mes-wa" onclick="event.stopPropagation();enviarWA(' + x.ri + ',event)"><i class="ti ti-brand-whatsapp"></i>Recordar</button>' : ''),
         money(x.status === 'parcial' ? x.restante : x.monto), dl < 0 ? 'var(--accent2)' : '', x.cid);
     });
+    html += '</div>';
   }
   if (cobros.length) {
-    html += titulo('Pagos recibidos', cobros.length, 'var(--serie-cobrado)');
+    html += titulo('Pagos recibidos', cobros.length, 'verde', 'arrow-down-left', totC) + '<div class="mes-grupo verde">';
     cobros.forEach(function(x) { html += fila(x.nombre, dateStr(x.fecha) + ' · ' + esc(x.metodo || 'Pago') + (x.recibo ? ' · ' + numeroRecibo(x.recibo) : '') + (x.nota ? ' · ' + esc(x.nota) : ''), '+' + money(x.monto), 'var(--accent)', x.cid); });
+    html += '</div>';
   }
   if (prestamos.length) {
-    html += titulo('Préstamos entregados', prestamos.length, 'var(--serie-prestado)');
-    prestamos.forEach(function(x) { html += fila(x.nombre, dateStr(x.fecha) + (x.concepto ? ' · ' + esc(x.concepto) : '') + (x.interes ? ' · ' + x.interes + '% mensual' : ''), money(x.monto), '', x.cid); });
+    html += titulo('Préstamos entregados', prestamos.length, 'azul', 'arrow-up-right', totP) + '<div class="mes-grupo azul">';
+    prestamos.forEach(function(x) { html += fila(x.nombre, dateStr(x.fecha) + (x.concepto ? ' · ' + esc(x.concepto) : '') + (x.interes ? ' · ' + x.interes + '% mensual' : ''), money(x.monto), 'var(--blue)', x.cid); });
+    html += '</div>';
   }
   document.getElementById('mes-detail-body').innerHTML = html;
   document.getElementById('mes-detail-overlay').classList.add('open');
@@ -4998,7 +5067,7 @@ function renderReporte() {
     html += '<div class="mov" onclick="abrirPerfil(\'' + escJs(m.cid) + '\')">' +
       '<div class="mov-ico ' + m.tipo + '"><i class="ti ti-' + (m.tipo === 'prestado' ? 'arrow-up-right' : 'arrow-down-left') + '"></i></div>' +
       '<div class="mov-txt"><strong>' + esc(m.nombre) + '</strong><span>' + (m.tipo === 'prestado' ? 'Le prestaste · ' : '') + esc(m.sub) + '</span></div>' +
-      '<div class="mov-monto"' + (m.tipo === 'cobrado' ? ' style="color:var(--accent)"' : '') + '>' + (m.tipo === 'cobrado' ? '+' : '−') + money(m.monto) + '</div>' +
+      '<div class="mov-monto" style="color:' + (m.tipo === 'cobrado' ? 'var(--accent)' : 'var(--blue)') + '">' + (m.tipo === 'cobrado' ? '+' : '−') + money(m.monto) + '</div>' +
     '</div>';
   });
   if (lista.length > 10) html += '<button class="btn-sm rep-mas" onclick="repTodos=!repTodos;renderReporte()">' + (repTodos ? 'Ver menos' : 'Ver los ' + lista.length + ' movimientos') + '</button>';
