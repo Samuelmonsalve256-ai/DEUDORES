@@ -15,6 +15,7 @@ const AUTOTABLE = fs.readFileSync(path.join(__dirname, 'node_modules/jspdf-autot
 const UID = 'user-1';
 let fallos = 0;
 const ok = (c, m) => { console.log((c ? 'OK   ' : 'FALLA') + ' ' + m); if (!c) fallos++; };
+const money0 = n => '$' + Math.round(n).toLocaleString('es-CO');
 const espera = ms => new Promise(r => setTimeout(r, ms));
 const iso = d => { const x = new Date(); x.setDate(x.getDate() + d); return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); };
 
@@ -37,8 +38,14 @@ async function dispositivo(browser, B, {local = null, movil = false, sesion = fa
       if (p === 'storage/upload') {
         if (!B.permitidas.includes('deudores_clientes')) return json({error: {message: 'Bucket not found'}});
         if (!b.path.startsWith(b.uid + '/')) return json({error: {message: 'new row violates row-level security policy'}});
-        B.fotos.set(b.path, b.b64); return json({data: {path: b.path}});
+        B.fotos.set(b.path, b.b64); B.carpetas = B.carpetas || new Map(); B.carpetas.set(b.path, b.bucket); return json({data: {path: b.path}});
       }
+      if (p === 'storage/list') {
+        if (b.bucket === 'deudores-backups' && !B.carpetaBackups) return json({error: {message: 'Bucket not found'}});
+        const pre = b.carpeta + '/';
+        return json({data: [...B.fotos.keys()].filter(k => k.startsWith(pre) && !k.slice(pre.length).includes('/') && (B.carpetas || new Map()).get(k) === b.bucket).map(k => ({name: k.slice(pre.length)}))});
+      }
+      if (p === 'storage/download') return json(B.fotos.has(b.path) ? {b64: B.fotos.get(b.path), tipo: 'application/json'} : {error: {message: 'Object not found'}});
       if (p === 'storage/remove') { const borradas = (b.paths || []).filter(x => x.startsWith(b.uid + '/') && B.fotos.delete(x)); return json({data: borradas.map(name => ({name}))}); }
       if (p === 'storage/url') return json(B.fotos.has(b.path) ? {url: 'data:image/jpeg;base64,' + B.fotos.get(b.path)} : {error: {message: 'Object not found'}});
       if (p.startsWith('functions/')) return json(B.funcion(b.uid, p.slice(10), b.cuerpo));
@@ -61,9 +68,7 @@ async function dispositivo(browser, B, {local = null, movil = false, sesion = fa
   await page.goto('http://app.test/index.html');
   return page;
 }
-async function cerrarResumen(page) {
-  if (await page.isVisible('#notif-modal-overlay.open')) { await page.click('.notif-btn-close'); await espera(350); }
-}
+async function cerrarResumen(page) {}
 async function login(page) {
   await page.waitForSelector('#dd-login.open');
   await page.fill('#dd-login-email', 'samuel@test.co');
@@ -103,8 +108,8 @@ const legado = [
   await login(A);
   await aceptar(A);           // "Datos unidos con la nube"
   await guardado(A);
-  await A.waitForSelector('#notif-modal-overlay.open', {timeout: 6000}).then(() => ok(true, 'al abrir aparece un solo resumen de cobros (no una ventana por deudor)'), () => ok(false, 'resumen de cobros al abrir'));
-  ok(/Tienes/.test(await A.locator('#notif-modal-body').innerText()), 'el resumen dice cuantos cobros hay');
+  await espera(2000);
+  ok(!await A.isVisible('.overlay.open') && !await A.locator('#notif-panel').count(), 'A.1 al abrir ya no sale la ventana de resumen ni el panel de 7 dias (lo hace Cobrar)');
   await cerrarResumen(A);
   const cli = await evalua(A, () => clientes.map(c => ({id: c.id, nombre: c.nombre, n: prestamosDe(c.id).length})));
   ok(cli.length === 3, '3.3 migracion: 4 prestamos antiguos quedan en 3 clientes (Juan con 2)');
@@ -119,7 +124,7 @@ const legado = [
   await evalua(A, id => abrirPerfil(id), juanId);
   await A.waitForSelector('#perfil.open');
   const perfil = await A.locator('#perfil-body').innerText();
-  ok(/Prestamos activos \(2\)/i.test(perfil) && /Historial de pagos \(1\)/i.test(perfil), '3.3 perfil: 2 prestamos activos e historial de pagos');
+  ok(/Préstamos activos \(2\)/i.test(perfil) && /Historial de pagos \(1\)/i.test(perfil), '3.3 perfil: 2 prestamos activos e historial de pagos');
   ok(/debe ahora[\s\S]*\$1\.100\.000/i.test(perfil), '3.3 perfil: debe $1.100.000 entre los dos prestamos');
 
   // ── 3. Nuevo prestamo para el mismo cliente desde el perfil ─────────────────
@@ -167,7 +172,7 @@ const legado = [
   await espera(200);
   l2 = await evalua(A, i => debtors[i], idxL);
   const totalL = l2.cuotas.reduce((s, c) => s + c.monto, 0);
-  ok(totalL > 600000 && Math.abs(totalL - 600000 * (1 + 0.1 * (89 / 30.4375))) < 2, '1.1 al subir el interes las cuotas se recalculan (' + totalL + ')');
+  ok(totalL === 780000, 'B.1 interes por meses: 10% x 3 meses (31 ene → 30 abr) = $180.000, total $780.000 (' + totalL + ')');
   await evalua(A, i => editDebtor(i, {stopPropagation() {}}), idxL);
   await A.fill('#f-prestamo', '2026-02-15');
   await A.fill('#f-interes', '0');
@@ -416,10 +421,11 @@ const legado = [
   await E.fill('#f-interes', '10');
   await E.fill('#f-ncuotas', '3');
   await E.fill('#f-pago', '');
-  ok(/hasta la ultima cuota/.test(await E.locator('#cuota-preview').innerText()), '1.1 el formulario avisa que el interes se cuenta hasta la ultima cuota');
+  const prev = await E.locator('#cuota-preview').innerText();
+  ok(/Interés: 10% × 3 meses = \$300\.000/.test(prev) && /hasta la última cuota/.test(prev), 'D.1 el formulario muestra la cuenta: 10% × 3 meses = $300.000, hasta la última cuota');
   await E.click('#overlay .btn-save');
   await espera(300);
-  const esperadoSL = Math.round(1000000 * (1 + 0.1 * (90 / 30.4375)));
+  const esperadoSL = 1300000;   // 10% x 3 meses exactos
   const sl = await evalua(E, () => { const d = debtors.find(x => x.concepto === 'Sin limite'); return {suma: d.cuotas.reduce((s, c) => s + c.monto, 0), enteras: d.cuotas.every(c => Number.isInteger(c.monto)), fp: d.fechaPago, total: totalDeuda(d)}; });
   ok(sl.suma === esperadoSL && sl.total === esperadoSL && sl.fp === '2026-04-10', '1.1 sin fecha limite cobra intereses hasta la ultima cuota (' + sl.suma + ')');
   ok(sl.enteras, 'centavos: las cuotas quedan en pesos enteros');
@@ -440,7 +446,7 @@ const legado = [
   await E.fill('#f-ncuotas', '3');
   await E.click('#overlay .btn-save');
   await E.waitForSelector('#dd-pregunta.open');
-  ok(/ultima cuota queda despues/i.test(await E.locator('#dd-pregunta-titulo').innerText()), '1.2 si las cuotas pasan de la fecha limite, pregunta');
+  ok(/última cuota queda después/i.test(await E.locator('#dd-pregunta-titulo').innerText()), '1.2 si las cuotas pasan de la fecha limite, pregunta');
   await E.click('#dd-pregunta-si');
   await espera(300);
   ok(await evalua(E, () => debtors.find(x => x.concepto === 'Limite corto').fechaPago) === '2026-04-15', '1.2 "Si": la fecha limite queda en la ultima cuota');
@@ -452,6 +458,18 @@ const legado = [
   }, [carlosId, iso(-40), iso(-10), iso(20), iso(50)]);
   ok(await evalua(E, () => getStatus(debtors.find(x => x.id === 'dv'))) === 'pending', '1.2 un prestamo al dia con la fecha limite vieja ya no sale "Vencido"');
 
+  // B.2 Quincenal: dias 15 y 30 (en febrero, el ultimo dia)
+  ok(await evalua(E, () => makeCuotas(400000, 4, '2026-01-20', 'quincenal').map(c => c.fecha).join(',')) === '2026-01-30,2026-02-15,2026-02-28,2026-03-15', 'B.2 quincenal: 30 ene, 15 feb, 28 feb, 15 mar');
+  // B.1 meses exactos: un mes de febrero tambien es un mes
+  ok(await evalua(E, () => [calcInterest(1000000, 10, '2026-02-01', '2026-03-01', 'meses'), calcInterest(1000000, 10, '2026-01-31', '2026-02-28', 'meses'), calcInterest(1000000, 10, '2026-01-01', '2027-01-01', 'meses'), calcInterest(1000000, 10, '2026-01-01', '2026-01-16', 'meses')].join(',')) === '1100000,1100000,2200000,1050000',
+     'B.1 10% al mes: febrero = $100.000, 31 ene→28 feb = 1 mes, 12 meses = $1.200.000, 15 dias = $50.000');
+  ok(await evalua(E, () => calcInterest(1000000, 10, '2026-02-01', '2026-03-01')) === 1091992, 'B.1 los prestamos antiguos (sin modo) conservan su calculo anterior');
+  // B.3 Recordatorio de un prestamo sin cuotas que esta atrasado: ya no dice "al dia"
+  await evalua(E, ([cid, f]) => { debtors.push({id: 'dsc', clienteId: cid, nombre: 'Carlos Diaz', telefono: '3001112233', concepto: 'Sin cuotas', fechaPrestamo: f, fechaPago: f, monto: 50000, interes: 0, cuotas: [], abonos: [], pagado: false}); persist(); }, [carlosId, iso(-5)]);
+  await evalua(E, () => { window.__abiertos = []; enviarWA(debtors.findIndex(x => x.id === 'dsc'), {stopPropagation() {}}); });
+  const waSC = decodeURIComponent((await evalua(E, () => window.__abiertos[0])).split('text=')[1]);
+  ok(/VENCIDO/.test(waSC) && !/al día/.test(waSC), 'B.3 el recordatorio de un prestamo sin cuotas atrasado dice que esta vencido');
+  await evalua(E, () => { debtors.splice(debtors.findIndex(x => x.id === 'dsc'), 1); persist(); });
   // Centavos de cuotas antiguas: pagar los valores redondeados deja todo pagado
   await evalua(E, ([cid, f]) => {
     debtors.push({id: 'dc', clienteId: cid, nombre: 'Carlos Diaz', concepto: 'Centavos', fechaPrestamo: f, fechaPago: f, monto: 1101847.89, interes: 0, freq: 'monthly',
@@ -553,13 +571,13 @@ const legado = [
   await espera(300);
   let prom = await evalua(E, id => { const c = clientePorId(id); return {n: (c.promesas || []).length, est: estadoPromesa(c, c.promesas[0]), f: c.promesas[0].fecha}; }, luisId);
   ok(prom.n === 1 && prom.est === 'pendiente' && prom.f === iso(1), '3.3 promesa guardada para manana (por defecto)');
-  ok(/Proximas \(1\)/i.test(await E.locator('#promesas-body').innerText()) && /Le pagan el viernes/.test(await E.locator('#promesas-body').innerText()), '3.3 la pestaña Compromisos la muestra en "Proximas" con la nota');
+  ok(/Próximas \(1\)/i.test(await E.locator('#promesas-body').innerText()) && /Le pagan el viernes/.test(await E.locator('#promesas-body').innerText()), '3.3 la pestaña Compromisos la muestra en "Proximas" con la nota');
   await guardado(E); await espera(1500); await guardado(E);
   ok(B3.vivos('deudores_clientes').some(r => (r.data.promesas || []).length === 1), '3.3 la promesa se guarda en la nube');
   await evalua(E, ([id, h]) => { const c = clientePorId(id); c.promesas[0].fecha = h; guardarClientesLocal(); persist(); renderList(); }, [luisId, iso(0)]);
   ok(await E.locator('#promesas-badge').innerText() === '1' && /Para hoy \(1\)/i.test(await E.locator('#promesas-body').innerText()), '3.3 el dia de la promesa aparece en "Para hoy" con el numero en la pestaña');
   await evalua(E, () => switchTab('cobrar'));
-  ok(/Prometio pagar el/.test(await E.locator('.cobrar-item', {hasText: 'Luis'}).innerText()), '3.3 en Cobrar se ve que Luis prometio pagar');
+  ok(/Prometió pagar el/.test(await E.locator('.cobrar-item', {hasText: 'Luis'}).innerText()), '3.3 en Cobrar se ve que Luis prometio pagar');
   await evalua(E, () => { const i = debtors.findIndex(x => x.id === 'dl'); debtors[i].abonos.push({id: 'pl1', monto: 50000, fecha: hoyISO(), creado: new Date().toISOString(), recibo: siguienteNumeroRecibo()}); actualizarPagado(debtors[i]); persist(); renderList(); });
   ok(await evalua(E, id => { const c = clientePorId(id); return estadoPromesa(c, c.promesas[0]); }, luisId) === 'cumplida', '3.3 al registrar el abono, la promesa queda cumplida sola');
   // Una promesa que no cumplio: al darle otra fecha, la anterior queda en el historial
@@ -709,6 +727,60 @@ const legado = [
   await guardado(E); await espera(1500); await guardado(E);
   await evalua(F, () => ddSincronizar('prueba')); await guardado(F);
   ok(await evalua(F, () => !pinActual() && !localStorage.getItem('dd_pin_local')), '1.7 al quitar el PIN en un dispositivo, el otro tampoco lo pide');
+
+  // ── 18. Backup automatico en la nube, ids seguros y app = funcion de avisos ──
+  // Backup en la nube: falta el SQL nuevo → lo dice; con el SQL, se guarda, se lista y se recupera
+  await evalua(E, () => ddAbrirCuenta());
+  await E.waitForFunction(() => !/Revisando/.test(document.getElementById('aj-backup-auto').textContent), null, {timeout: 5000});
+  ok(/Falta un paso/.test(await E.locator('#aj-backup-auto').innerText()), 'backup automatico: si falta el SQL nuevo, Ajustes lo dice');
+  B3.carpetaBackups = true;
+  await evalua(E, () => guardarBackupNube());
+  await E.waitForSelector('#aj-backup-lista .bk-fila', {timeout: 5000});
+  const rutaBk = [...B3.fotos.keys()].find(k => /^user-1\/backup-\d{4}-\d{2}-\d{2}\.json$/.test(k));
+  const bkNube = JSON.parse(Buffer.from(B3.fotos.get(rutaBk), 'base64').toString());
+  ok(bkNube.version === 'deudores_v4' && bkNube.datos.length > 0 && !bkNube.ajustes.pin, 'backup en la nube: guarda prestamos, clientes y ajustes (sin el PIN)');
+  ok(/El último fue[\s\S]*hoy/.test(await E.locator('#aj-backup-auto').innerText()), 'Ajustes muestra cuando fue el ultimo backup automatico');
+  await E.click('#aj-backup-lista .bk-fila button:text-is("Recuperar")');
+  await E.waitForSelector('#backup-load-overlay.open', {timeout: 5000});
+  ok(/0 nuevos/.test(await E.locator('#backup-load-msg').innerText()), 'recuperar un backup de la nube muestra que no hay nada nuevo (no duplica)');
+  await E.click('#backup-load-overlay .btn-cancel');
+
+  // C.2 Un backup alterado no puede meter codigo con un id raro
+  const tmpMalo = path.join(require('os').tmpdir(), 'dd-malo.json');
+  fs.writeFileSync(tmpMalo, JSON.stringify({version: 'deudores_v4', fecha: new Date().toISOString(),
+    datos: [{id: "x');window.__hack=1;('", clienteId: "y');window.__hack=2;('", nombre: 'Hacker Prueba', concepto: 'malo', fechaPrestamo: iso(-3), fechaPago: iso(27), monto: 1000, interes: 0,
+             cuotas: [{monto: 1000, fecha: iso(27)}], abonos: [{id: "z');window.__hack=3;('", monto: 10, fecha: iso(-1)}], pagado: false}],
+    clientes: [{id: "c');window.__hack=4;('", nombre: 'Otro Hacker'}]}));
+  await E.setInputFiles('#input-backup', tmpMalo);
+  await E.waitForSelector('#backup-load-overlay.open');
+  await E.click('#backup-load-ok');
+  await espera(400);
+  const malo = await evalua(E, () => { const d = debtors.find(x => x.nombre === 'Hacker Prueba'); return d && {id: d.id, cli: d.clienteId, ab: d.abonos[0].id}; });
+  ok(malo && /^[\w-]+$/.test(malo.id) && /^[\w-]+$/.test(malo.cli) && /^[\w-]+$/.test(malo.ab), 'C.2 los ids raros de un backup se cambian por ids seguros');
+  ok(!await evalua(E, () => clientes.some(c => c.nombre === 'Otro Hacker')), 'C.2 un cliente con un id raro no se carga');
+  await evalua(E, () => { const d = debtors.find(x => x.nombre === 'Hacker Prueba'); abrirPerfil(d.clienteId); switchTab('cobrar'); });
+  await E.click('#perfil .perfil-volver');
+  ok(await evalua(E, () => !window.__hack), 'C.2 ningun codigo del archivo se ejecuto');
+  ok(await evalua(E, () => escJs("a'b\\c") === "a\\&#39;b\\\\c"), 'C.2 los textos dentro de los botones quedan protegidos');
+  await evalua(E, () => switchTab('deudores'));
+
+  // D.2 La app y la funcion de las notificaciones calculan lo mismo
+  const tmpFn = path.join(fs.mkdtempSync(path.join(require('os').tmpdir(), 'dd-fn-')), 'fn.mjs');
+  fs.copyFileSync(path.join(RAIZ, 'supabase/functions/deudores-avisos/index.ts'), tmpFn);
+  const fnAv = await import(require('url').pathToFileURL(tmpFn).href);
+  const datosApp = await evalua(E, () => ({hoy: hoyISO(), prestamos: JSON.parse(JSON.stringify(debtors)),
+    totales: debtors.map(d => totalDeuda(d)),
+    atrasado: itemsPorCobrar(1).filter(x => x.grupo === 'atrasado').reduce((s, x) => s + x.monto, 0),
+    nAtrasados: itemsPorCobrar(1).filter(x => x.grupo === 'atrasado').length,
+    hoyMonto: itemsPorCobrar(0).filter(x => x.grupo === 'hoy').reduce((s, x) => s + x.monto, 0)}));
+  const totFn = datosApp.prestamos.map(d => fnAv.totalDeuda(d));
+  ok(JSON.stringify(totFn) === JSON.stringify(datosApp.totales), 'D.2 el total de cada prestamo es igual en la app y en las notificaciones (' + totFn.length + ' prestamos)');
+  const avFn = fnAv.calcularAvisos(datosApp.prestamos, datosApp.hoy);
+  const atrFn = avFn.atrasados.reduce((s, x) => s + x.monto, 0);
+  const nombresAtr = new Set(avFn.atrasados.map(x => x.nombre));
+  ok(Math.round(atrFn) === Math.round(datosApp.atrasado) && avFn.atrasados.length === datosApp.nAtrasados, 'D.2 lo atrasado es igual en Cobrar y en la notificacion (' + money0(atrFn) + ')');
+  const hoyFn = avFn.deHoy.reduce((s, x) => s + x.monto, 0);
+  ok(hoyFn >= datosApp.hoyMonto, 'D.2 lo de hoy de la notificacion incluye lo de Cobrar');
   for (const p of [E, F]) ok(p.errores.length === 0, 'sin errores de JavaScript (nuevas funciones): ' + (p.errores.join(' / ') || 'ninguno'));
 
   for (const p of [A, C, D]) ok(p.errores.length === 0, 'sin errores de JavaScript: ' + (p.errores.join(' / ') || 'ninguno'));

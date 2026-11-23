@@ -10,6 +10,9 @@
 //                     y lo que vence hoy, las promesas de pago del dia, lo que vence manana
 //                     y (en el primer aviso) el recordatorio de backup. Con "avisos discretos"
 //                     no van nombres ni valores (se ven en la pantalla bloqueada).
+//                     Si un aviso no se pudo enviar, se reintenta en las 2 horas siguientes.
+//                     Ademas, cada 15 dias guarda solo un backup en la nube (carpeta privada
+//                     deudores-backups, guarda los 6 ultimos) y avisa que se hizo.
 //
 // No usa librerias externas: el cifrado de Web Push (RFC 8291) y la firma VAPID
 // (RFC 8292) se hacen con WebCrypto. Ver README del repositorio DEUDORES.
@@ -103,19 +106,40 @@ function hoyColombia(desfaseDias = 0) {
   const d = new Date(Date.now() + ZONA_OFFSET_HORAS * 3600e3 + desfaseDias * 86400e3);
   return d.toISOString().slice(0, 10);
 }
+/* Dia en Colombia de una fecha y hora guardada en UTC (un backup a las 8 p.m. sigue siendo de hoy) */
+export function fechaColombia(valor) {
+  const v = String(valor || '');
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+  const t = Date.parse(v);
+  return isNaN(t) ? v.slice(0, 10) : new Date(t + ZONA_OFFSET_HORAS * 3600e3).toISOString().slice(0, 10);
+}
 export function horaColombia() { return new Date(Date.now() + ZONA_OFFSET_HORAS * 3600e3).getUTCHours(); }
 function diasEntre(desde, hasta) {
   return Math.round((Date.parse(hasta + 'T00:00:00Z') - Date.parse(desde + 'T00:00:00Z')) / 86400e3);
 }
-function calcInterest(monto, rate, d1, d2) {
+/* Meses completos y dias sueltos entre dos fechas (igual que en la app) */
+export function mesesYDias(d1, d2) {
+  const a = String(d1).split('-').map(Number), b = String(d2).split('-').map(Number);
+  const ini = Date.UTC(a[0], a[1] - 1, a[2]), fin = Date.UTC(b[0], b[1] - 1, b[2]);
+  if (!(fin > ini)) return {meses: 0, dias: 0};
+  const masMeses = (m) => Date.UTC(a[0], a[1] - 1 + m, Math.min(a[2], new Date(Date.UTC(a[0], a[1] - 1 + m + 1, 0)).getUTCDate()));
+  let m = Math.max(0, (b[0] - a[0]) * 12 + (b[1] - a[1]));
+  while (m > 0 && masMeses(m) > fin) m--;
+  while (masMeses(m + 1) <= fin) m++;
+  return {meses: m, dias: Math.round((fin - masMeses(m)) / 86400000)};
+}
+/* Interes simple mensual en pesos enteros: por meses de calendario (prestamos nuevos)
+   o por dias / 30,44 (prestamos antiguos, sin interesModo) */
+export function calcInterest(monto, rate, d1, d2, modo) {
   monto = parseFloat(monto) || 0; rate = parseFloat(rate) || 0;
   if (!rate || !d1 || !d2) return Math.round(monto);
+  if (modo === 'meses') { const md = mesesYDias(d1, d2); return Math.round(monto * (1 + (rate / 100) * (md.meses + md.dias / 30))); }
   const dias = Math.max(0, (new Date(d2).getTime() - new Date(d1).getTime()) / 86400000);
   return Math.round(monto * (1 + (rate / 100) * (dias / 30.4375)));
 }
-function totalDeuda(d) {
+export function totalDeuda(d) {
   const cuotas = d.cuotas || [];
-  const calc = calcInterest(d.monto, d.interes, d.fechaPrestamo, d.fechaPago);
+  const calc = calcInterest(d.monto, d.interes, d.fechaPrestamo, d.fechaPago, d.interesModo);
   if (!cuotas.length) return calc;
   const suma = cuotas.reduce((s, c) => s + (parseFloat(c.monto) || 0), 0);
   return Math.abs(suma - calc) < 1 ? calc : Math.round(suma);
@@ -187,6 +211,47 @@ export function avisoDeLaHora(ajustes, hora) {
   return {tipo: 'diario-' + hora, primera: hora === horas[0]};
 }
 
+/* Avisos que toca enviar a esta hora: el de su hora, o uno de las 2 horas anteriores que
+   no se pudo enviar (si no ha llegado la hora del siguiente aviso del dia) */
+export function avisosDeLaHora(ajustes, hora) {
+  if (ajustes && ajustes.avisos && ajustes.avisos.activos === false) return [];
+  const horas = horasDeAviso(ajustes);
+  return horas.map((h, i) => ({h, i}))
+    .filter(({h, i}) => hora >= h && hora <= h + 2 && !(i + 1 < horas.length && hora >= horas[i + 1]))
+    .map(({h, i}) => ({tipo: 'diario-' + h, primera: i === 0}));
+}
+
+// ── Backup automatico cada 15 dias ───────────────────────────────────────────
+export const BUCKET_BACKUPS = 'deudores-backups';
+export const DIAS_ENTRE_BACKUPS = 15;
+export const BACKUPS_GUARDADOS = 6;
+/* El mismo formato que el backup que se descarga desde la app (sin el PIN) */
+export function armarBackup(prestamos, clientes, ajustes, ahoraISO) {
+  const aj = JSON.parse(JSON.stringify(ajustes || {}));
+  delete aj.pin;
+  return {version: 'deudores_v4', fecha: ahoraISO, automatico: true, total: prestamos.length, datos: prestamos, clientes, ajustes: aj};
+}
+const fechaDeBackup = (nombre) => ((String(nombre).split('/').pop().match(/^backup-(\d{4}-\d{2}-\d{2})\.json$/) || [])[1]) || null;
+/* ¿Toca hacer backup hoy? (el ultimo fue hace 15 dias o mas, o no hay ninguno) */
+export function tocaBackup(nombres, hoy) {
+  const fechas = (nombres || []).map(fechaDeBackup).filter(Boolean).sort();
+  return !fechas.length || diasEntre(fechas[fechas.length - 1], hoy) >= DIAS_ENTRE_BACKUPS;
+}
+/* Los backups viejos que sobran (se guardan los 6 mas recientes) */
+export function backupsParaBorrar(nombres) {
+  const conFecha = (nombres || []).filter(fechaDeBackup).sort((a, b) => fechaDeBackup(b).localeCompare(fechaDeBackup(a)));
+  return conFecha.slice(BACKUPS_GUARDADOS);
+}
+
+/* Compara dos textos sin revelar por el tiempo cuantas letras coinciden */
+export function igualSeguro(a, b) {
+  a = String(a || ''); b = String(b || '');
+  if (!a || !b) return false;
+  let r = a.length ^ b.length;
+  for (let i = 0; i < Math.max(a.length, b.length); i++) r |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0);
+  return r === 0;
+}
+
 export function armarMensajes(av, ajustes, hoy, opciones = {}) {
   const segunda = opciones.primera === false;
   const discretos = !!(ajustes && ajustes.avisos && ajustes.avisos.discretos);
@@ -219,8 +284,9 @@ export function armarMensajes(av, ajustes, hoy, opciones = {}) {
   }
   if (segunda) return msgs;   // el recordatorio de backup va solo en el primer aviso del dia
   const bk = (ajustes && ajustes.backup) || {};
+  if (bk.frecuencia === 'nunca') return msgs;   // solo el backup automatico
   const cada = {semanal: 7, quincenal: 15, mensual: 30}[bk.frecuencia] || 30;
-  const desde = bk.ultimo ? diasEntre(String(bk.ultimo).slice(0, 10), hoy) : null;
+  const desde = bk.ultimo ? diasEntre(fechaColombia(bk.ultimo), hoy) : null;
   if (desde === null || desde >= cada) {
     if (desde === null || (desde - cada) % 3 === 0) {
       msgs.push({title: '💾 Es hora de tu backup', body: desde === null ? 'Aún no has descargado ningún backup. Toca para hacerlo ahora.' : 'Tu último backup fue hace ' + desde + ' días. Toca para descargarlo y guardarlo en Archivos o Drive.', tag: 'dd-backup', url: URL_APP + '?backup=1'});
@@ -243,16 +309,63 @@ async function db(ruta, opciones = {}) {
   const t = await r.text();
   return t ? JSON.parse(t) : null;
 }
-async function config() {
+class ErrorConocido extends Error {}
+async function leerConfig() {
   const filas = await db('dd_push_config?id=eq.1&select=*');
-  let c = filas && filas[0];
-  if (!c) throw new Error('Falta ejecutar supabase/deudores-2.sql');
+  const c = filas && filas[0];
+  if (!c) throw new ErrorConocido('Falta ejecutar supabase/deudores-2.sql');
+  return c;
+}
+async function config() {
+  let c = await leerConfig();
   if (!c.vapid_publica || !c.vapid_privada) {
     const k = await generarClavesVapid();
     await db('dd_push_config?id=eq.1', {method: 'PATCH', body: JSON.stringify({vapid_publica: k.publica, vapid_privada: k.privada})});
     c = {...c, vapid_publica: k.publica, vapid_privada: k.privada};
   }
   return c;
+}
+async function storage(ruta, opciones = {}) {
+  const r = await fetch(SB_URL + '/storage/v1/' + ruta, {
+    ...opciones,
+    headers: {apikey: SB_SERVICE, Authorization: 'Bearer ' + SB_SERVICE, ...(opciones.headers || {})},
+  });
+  if (!r.ok) throw new Error('Storage ' + r.status + ': ' + await r.text());
+  const t = await r.text();
+  try { return t ? JSON.parse(t) : null; } catch (e) { return t; }
+}
+async function marcar(uid, fecha, tipo) {
+  const m = await db('dd_push_envios', {method: 'POST', headers: {Prefer: 'resolution=ignore-duplicates,return=representation'},
+    body: JSON.stringify({user_id: uid, fecha, tipo})});
+  return !!(m && m.length);
+}
+async function desmarcar(uid, fecha, tipo) {
+  await db('dd_push_envios?user_id=eq.' + uid + '&fecha=eq.' + fecha + '&tipo=eq.' + encodeURIComponent(tipo), {method: 'DELETE'}).catch(() => {});
+}
+/* Backup automatico de un usuario (una revision al dia). Devuelve el aviso, o null */
+async function backupAutomatico(uid, prestamos, clientes, ajustes, hoy) {
+  if (!prestamos.length && !clientes.length) return null;
+  if (!await marcar(uid, hoy, 'backup-auto')) return null;
+  try {
+    const lista = await storage('object/list/' + BUCKET_BACKUPS, {method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({prefix: uid + '/', limit: 100, offset: 0, sortBy: {column: 'name', order: 'asc'}})});
+    const nombres = (lista || []).map(o => o.name);
+    if (!tocaBackup(nombres, hoy)) return null;
+    const archivo = 'backup-' + hoy + '.json';
+    await storage('object/' + BUCKET_BACKUPS + '/' + uid + '/' + archivo, {method: 'POST',
+      headers: {'Content-Type': 'application/json', 'x-upsert': 'true'},
+      body: JSON.stringify(armarBackup(prestamos, clientes, ajustes, new Date().toISOString()))});
+    const viejos = backupsParaBorrar(nombres.concat([archivo]));
+    if (viejos.length) await storage('object/' + BUCKET_BACKUPS, {method: 'DELETE', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({prefixes: viejos.map(n => uid + '/' + n.split('/').pop())})}).catch(() => {});
+    return {title: '💾 Backup automático guardado',
+      body: 'Se guardó una copia de tus ' + prestamos.length + ' préstamos y ' + clientes.length + ' clientes en la nube. La puedes descargar en Ajustes → Backup.',
+      tag: 'dd-backup-auto', url: URL_APP + '?ajustes=1'};
+  } catch (e) {
+    console.log('Backup automatico fallo (se reintenta en la proxima hora):', e);
+    await desmarcar(uid, hoy, 'backup-auto');
+    return null;
+  }
 }
 async function usuarioDeToken(req) {
   const token = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
@@ -284,46 +397,62 @@ if (typeof Deno !== 'undefined' && Deno.serve) Deno.serve(async (req) => {
   try {
     const cuerpo = await req.json().catch(() => ({}));
     const accion = cuerpo.accion;
-    const cfg = await config();
-    const vapid = {publica: cfg.vapid_publica, privada: cfg.vapid_privada};
 
-    if (accion === 'clave') {
-      if (!await usuarioDeToken(req)) return resp({error: 'Inicia sesion'}, 401);
-      return resp({publica: vapid.publica});
-    }
-    if (accion === 'prueba') {
+    // Con tu sesion: primero se revisa quien llama, despues se usa la configuracion
+    if (accion === 'clave' || accion === 'prueba') {
       const u = await usuarioDeToken(req);
       if (!u) return resp({error: 'Inicia sesion'}, 401);
+      const cfg = await config();
+      const vapid = {publica: cfg.vapid_publica, privada: cfg.vapid_privada};
+      if (accion === 'clave') return resp({publica: vapid.publica});
       const n = await enviarAUsuario(u.id, [{title: '✅ Mis Deudores', body: 'Las notificaciones funcionan en este dispositivo. Aquí te llegarán tus cobros del día.', tag: 'dd-prueba', url: URL_APP}], vapid);
       return resp({enviadas: n});
     }
     if (accion === 'diario') {
-      if (req.headers.get('x-dd-cron') !== cfg.secreto_cron) return resp({error: 'No autorizado'}, 401);
+      // Solo Supabase Cron (con la clave secreta guardada en la base de datos)
+      const cfg0 = await leerConfig();
+      if (!igualSeguro(req.headers.get('x-dd-cron'), cfg0.secreto_cron)) return resp({error: 'No autorizado'}, 401);
+      const cfg = await config();
+      const vapid = {publica: cfg.vapid_publica, privada: cfg.vapid_privada};
       const hoy = hoyColombia(), hora = horaColombia();
       const subs = await db('dd_push_suscripciones?select=user_id');
-      const usuarios = [...new Set((subs || []).map(s => s.user_id))];
+      const conAvisos = new Set((subs || []).map(s => s.user_id));
+      // Tambien los que tienen prestamos aunque no tengan avisos (para el backup automatico)
+      const conDatos = await db('mc_registros?coleccion=eq.deudores&deleted_at=is.null&select=user_id');
+      const usuarios = [...new Set([...conAvisos, ...(conDatos || []).map(f => f.user_id)])];
       const resultado = [];
       for (const uid of usuarios) {
         const filas = await db('mc_registros?user_id=eq.' + uid + '&coleccion=in.(deudores,deudores_ajustes,deudores_clientes)&deleted_at=is.null&select=coleccion,data');
         const prestamos = filas.filter(f => f.coleccion === 'deudores').map(f => f.data);
         const clientes = filas.filter(f => f.coleccion === 'deudores_clientes').map(f => f.data);
         const ajustes = (filas.find(f => f.coleccion === 'deudores_ajustes') || {}).data || {};
-        const aviso = avisoDeLaHora(ajustes, hora) || (cuerpo.forzar ? {tipo: 'diario-' + hora, primera: true} : null);
-        if (!aviso) continue;
-        // Cada aviso una sola vez por dia, aunque el cron se repita
-        const marca = await db('dd_push_envios', {method: 'POST', headers: {Prefer: 'resolution=ignore-duplicates,return=representation'},
-          body: JSON.stringify({user_id: uid, fecha: hoy, tipo: aviso.tipo})});
-        if (!marca || !marca.length) continue;
-        const av = calcularAvisos(prestamos, hoy);
-        av.promesas = promesasDeHoy(clientes, prestamos, hoy);
-        const msgs = armarMensajes(av, ajustes, hoy, {primera: aviso.primera});
-        resultado.push({usuario: uid, mensajes: msgs.length, enviadas: msgs.length ? await enviarAUsuario(uid, msgs, vapid) : 0});
+        // Backup automatico: desde la hora del primer aviso del dia
+        if (hora >= horasDeAviso(ajustes)[0]) {
+          const aviso = await backupAutomatico(uid, prestamos, clientes, ajustes, hoy);
+          if (aviso && conAvisos.has(uid)) await enviarAUsuario(uid, [aviso], vapid);
+          if (aviso) resultado.push({usuario: uid, backup: true});
+        }
+        if (!conAvisos.has(uid)) continue;
+        let pendientes = avisosDeLaHora(ajustes, hora);
+        if (cuerpo.forzar && !pendientes.length) pendientes = [{tipo: 'diario-' + hora, primera: true}];
+        for (const aviso of pendientes) {
+          // Cada aviso una sola vez por dia, aunque el cron se repita
+          if (!await marcar(uid, hoy, aviso.tipo)) continue;
+          const av = calcularAvisos(prestamos, hoy);
+          av.promesas = promesasDeHoy(clientes, prestamos, hoy);
+          const lista = armarMensajes(av, ajustes, hoy, {primera: aviso.primera});
+          const enviadas = lista.length ? await enviarAUsuario(uid, lista, vapid) : 0;
+          // Si no llego ninguno, se vuelve a intentar en la proxima hora
+          if (lista.length && !enviadas) await desmarcar(uid, hoy, aviso.tipo);
+          resultado.push({usuario: uid, aviso: aviso.tipo, mensajes: lista.length, enviadas});
+        }
       }
       return resp({hoy, hora, resultado});
     }
     return resp({error: 'Accion desconocida'}, 400);
   } catch (e) {
+    // El detalle queda en el registro de Supabase; quien llama solo ve un mensaje general
     console.log('Error:', e);
-    return resp({error: String(e && e.message || e)}, 500);
+    return resp({error: e instanceof ErrorConocido ? e.message : 'Error interno. Intentalo de nuevo'}, 500);
   }
 });

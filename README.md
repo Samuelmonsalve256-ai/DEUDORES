@@ -27,6 +27,8 @@ Los datos se guardan en la misma cuenta y la misma base de datos (Supabase) que 
 | **Análisis** | Totales, reporte por período (cobrado, intereses ganados, por forma de pago, quiénes más pagaron), gráficas y ranking. |
 | **⋮ → Ajustes** | Cuenta y nube, notificaciones, backup, PIN y tus datos (para recibos, PDF y mensajes). |
 
+**Interés:** el 10 % mensual es 10 % por cada mes de calendario (del 15 de enero al 15 de febrero es 1 mes, aunque febrero sea corto) y los días sueltos cuentan como días ÷ 30. El formulario muestra la cuenta, por ejemplo *"Interés: 10 % × 3 meses = $300.000"*. Los préstamos creados antes de este cambio conservan su cálculo. La frecuencia **Quincenal** cobra los días 15 y 30 de cada mes (en febrero, el último día).
+
 Cada abono guarda la **forma de pago** (efectivo, Nequi, Daviplata, transferencia) y puede llevar la **foto del comprobante**. Cada abono tiene su **recibo con número consecutivo** (REC-0001, REC-0002…), que se asigna al registrarlo y nunca se repite.
 
 ### Fotos del cliente
@@ -58,7 +60,7 @@ En **Editar datos** del cliente marca **No volver a prestarle** y escribe el mot
 
 ### Paso 1 · Lo básico (ya hecho)
 
-`supabase/deudores.sql`, GitHub Pages y la *Redirect URL* ya están configurados.
+GitHub Pages y la *Redirect URL* ya están configurados.
 
 ### Paso 2 · Perfiles, fotos y notificaciones (`supabase/deudores-2.sql`)
 
@@ -102,7 +104,8 @@ Cada día, a esa hora, te llega como cualquier notificación de una app:
 - 🔴 **Cobros para hoy**: lo atrasado y lo que vence hoy, con nombres y valores.
 - 🟡 **Mañana vencen…**: lo que vence mañana.
 - 🤝 **Promesas de pago para hoy**: quién prometió pagarte hoy y cuánto falta.
-- 💾 **Es hora de tu backup**: cuando toca hacer backup. Se repite cada 3 días hasta que lo hagas.
+- 💾 **Backup automático guardado**: cada 15 días.
+- 💾 **Es hora de tu backup**: cuando toca descargar una copia a tu dispositivo (se puede apagar).
 
 Con **Avisos discretos** (en Ajustes) la notificación solo dice cuántos cobros hay, sin nombres ni valores, porque se ve en la pantalla bloqueada.
 
@@ -116,14 +119,16 @@ Al tocarla se abre la app en la pestaña **Cobrar** o en el backup. Las notifica
 
 ## Cambios automáticos
 
-La acción **Supabase** (`.github/workflows/supabase.yml`) sube sola la función de notificaciones cuando cambia en `main`. También ejecuta un archivo `.sql` de `supabase/` cuando se pide desde **Actions → Supabase → Run workflow**. Usa el secreto `SUPABASE_ACCESS_TOKEN`, guardado en **Settings → Secrets and variables → Actions** de este repositorio.
+- **Publicar** (`.github/workflows/publicar.yml`): con cada cambio en `main` corre todas las pruebas y **solo si pasan** publica la app en GitHub Pages y, si cambió, sube la función de notificaciones a Supabase. Si una prueba falla, no se publica nada y sigue funcionando la versión anterior. Para esto, **Settings → Pages → Source** debe estar en **GitHub Actions**.
+- **Supabase** (`.github/workflows/supabase.yml`): a pedido, ejecuta un archivo `.sql` de `supabase/` (**Actions → Supabase → Run workflow**) o vuelve a subir la función.
+- Ambas usan el secreto `SUPABASE_ACCESS_TOKEN`, guardado en **Settings → Secrets and variables → Actions**.
 
 ---
 
 ## Backup
 
-- En **⋮ → Ajustes → Backup** eliges cada cuánto te lo recuerda: cada semana, cada 15 días o cada mes.
-- Cuando toca, la app te lo pide al abrir y también te llega la notificación 💾.
+- **Automático, cada 15 días:** la función de Supabase guarda sola una copia en una carpeta privada de la nube (`deudores-backups`, los 6 últimos) y te llega la notificación **💾 Backup automático guardado**. En **⋮ → Ajustes → Backup** ves las copias y puedes **Descargar** o **Recuperar** cualquiera. También puedes **Guardar copia en la nube ahora**. (Se activó con `supabase/deudores-4-backups.sql`.)
+- **Copia en tu dispositivo:** en Ajustes eliges cada cuánto te recuerda descargarla (cada semana, cada 15 días, cada mes o **No recordarme**). Cuando toca, la app te lo pide al abrir y llega la notificación 💾.
 - En el iPhone, **Descargar backup** abre el menú de compartir. Elige **Guardar en Archivos** (iCloud Drive), tu correo o Google Drive.
 - El backup trae préstamos, clientes y ajustes. El PIN no se incluye.
 - **Cargar archivo backup** nunca borra nada y no duplica: primero muestra cuántos son nuevos. También puede recuperar tus datos del negocio. Dos clientes con el mismo nombre solo se unen si tienen la misma cédula.
