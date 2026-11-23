@@ -500,7 +500,7 @@ const legado = [
   await E.click('#ab-guardar');
   await E.waitForFunction(() => Object.keys(_fotosPendientes).length === 1, null, {timeout: 5000});
   ok(true, '1.10 sin internet la foto queda guardada en el dispositivo, esperando');
-  ok(/&#9203;|⏳/.test(await evalua(E, () => document.getElementById('list') && (perfilAbiertoId() ? '' : '') + filaAbono(debtors.findIndex(x => x.id === 'dv'), debtors.find(x => x.id === 'dv').abonos.length - 1))), '1.10 el abono muestra ⏳ mientras la foto espera internet');
+  ok(/ti-cloud-upload/.test(await evalua(E, () => document.getElementById('list') && (perfilAbiertoId() ? '' : '') + filaAbono(debtors.findIndex(x => x.id === 'dv'), debtors.find(x => x.id === 'dv').abonos.length - 1))), '1.10 el abono muestra el ícono de subida mientras la foto espera internet');
   await E.context().setOffline(false);
   await evalua(E, () => window.dispatchEvent(new Event('online')));
   await E.waitForFunction(() => { const d = debtors.find(x => x.id === 'dv'); return d.abonos[d.abonos.length - 1].comprobante; }, null, {timeout: 10000});
@@ -557,11 +557,11 @@ const legado = [
   const calC = await evalua(E, id => calificacionCliente(clientePorId(id)), mariaId);
   const calL = await evalua(E, id => calificacionCliente(clientePorId(id)), luisId);
   ok(calC.estrellas === 5 && /Excelente/.test(calC.etiqueta) && calL.estrellas === 1 && /Mal pagador/.test(calL.etiqueta), '3.1 calificacion: Maria (paga a tiempo) ' + calC.estrellas + '★ (' + calC.etiqueta + '), Luis ' + calL.estrellas + '★ (' + calL.etiqueta + ')');
-  ok(/★/.test(await E.locator('.perfil-cal').innerText()), '3.1 la calificacion se ve en el perfil');
+  ok(await E.locator('.perfil-cal .est.llena').count() >= 1, '3.1 la calificacion se ve en el perfil');
 
   // 3.3 Promesas de pago (compromisos)
   await evalua(E, () => { cerrarPerfil(); switchTab('promesas'); });
-  await E.click('text=+ Nueva promesa');
+  await E.click('text=Nueva promesa');
   await E.waitForSelector('#promesa-overlay.open');
   await E.selectOption('#prom-cliente', luisId);
   ok(/Lo vencido/.test(await E.locator('#prom-atajos-monto').innerText()), '3.3 atajos de monto: lo vencido');
