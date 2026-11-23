@@ -772,6 +772,9 @@ body.montos-ocultos .prom-monto, body.montos-ocultos .cal-sub, body.montos-ocult
 .mes-section-dot { width:9px; height:9px; border-radius:3px; flex-shrink:0; }
 .mes-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 0; border-bottom:1px solid var(--border); }
 .mes-row:last-child { border-bottom:none; }
+.mes-row[onclick] { cursor:pointer; }
+.mes-row[onclick]:active { background:var(--surface2); }
+.mes-wa { padding:3px 9px !important; font-size:12px !important; }
 .mes-row-left { display:flex; flex-direction:column; gap:2px; flex:1; min-width:0; }
 .mes-row-name { font-weight:600; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .mes-row-sub { font-size:12.5px; color:var(--text2); display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
@@ -931,7 +934,7 @@ body.montos-ocultos .gr-leyenda strong, body.montos-ocultos .gr-caja text.gr-eje
       <div class="an-card-cab">
         <div>
           <div class="an-card-tit"><i class="ti ti-chart-bar"></i>Prestado y cobrado por mes</div>
-          <div class="an-card-sub">Toca un mes para ver sus números</div>
+          <div class="an-card-sub">Toca un mes para ver a quién cobrarle y sus movimientos</div>
         </div>
         <div class="an-seg" id="an-rango">
           <button data-r="6" onclick="anCambiarRango('6')">6 meses</button>
@@ -1836,7 +1839,10 @@ function audioCtx() {
 }
 // El iPhone solo deja sonar despues de un toque: se "abre" el audio con el primer toque
 function desbloquearAudio() {
-  if (!SND.on || SND.desbloqueado) return;
+  if (!SND.on) return;
+  // El iPhone pausa el audio cuando no se usa: se reanuda en cada toque para que el sonido salga al instante
+  if (SND.ctx && SND.ctx.state !== 'running') { try { SND.ctx.resume(); } catch(e) {} }
+  if (SND.desbloqueado) return;
   try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch(e) {}
   try {
     var c = audioCtx(); if (!c) return;
@@ -1845,7 +1851,7 @@ function desbloquearAudio() {
     SND.desbloqueado = true;
   } catch(e) {}
 }
-['pointerdown', 'touchend', 'keydown'].forEach(function(ev) { document.addEventListener(ev, desbloquearAudio, {capture: true, passive: true}); });
+['touchstart', 'pointerdown', 'touchend', 'keydown'].forEach(function(ev) { document.addEventListener(ev, desbloquearAudio, {capture: true, passive: true}); });
 function tono(c, n) {
   var t0 = c.currentTime + (n.t || 0), d = n.d || .12, v = n.v || .18;
   var o = c.createOscillator(), g = c.createGain();
@@ -1879,6 +1885,10 @@ function sonido(nombre) {
   try {
     var c = audioCtx(), def = SONIDOS[nombre];
     if (!c || !def) return;
+    // Si la accion ya sono al empezar, el aviso del final no la repite
+    var ahora = Date.now();
+    if (SND.ultimoNombre === nombre && ahora - SND.ultimo < 1500) return;
+    SND.ultimoNombre = nombre; SND.ultimo = ahora;
     def.forEach(function(n) { tono(c, n); });
   } catch(e) {}
 }
@@ -2456,6 +2466,7 @@ async function archivarPrestamo(ri, archivar, e) {
       si: 'Archivar', no: 'Cancelar'});
     if (!ok) return;
   }
+  sonido('guardar');
   d.archivado = !!archivar;
   persist();
   renderList();
@@ -2987,6 +2998,7 @@ function guardarPromesa() {
   var fecha = document.getElementById('prom-fecha').value;
   if (!fecha) { showToast('Escribe qué día dijo que paga'); return; }
   if (fecha < hoyISO() && !_promId) { showToast('La fecha de la promesa no puede ser antes de hoy'); return; }
+  sonido('guardar');
   var datos = {fecha: fecha, monto: leerDinero('prom-monto'), prestamoId: document.getElementById('prom-prestamo').value || '',
                nota: document.getElementById('prom-nota').value.trim()};
   var ahora = new Date().toISOString();
@@ -3008,6 +3020,7 @@ function guardarPromesa() {
 function marcarPromesaCumplida() {
   var c = promClienteActual(), p = c && (c.promesas || []).find(function(x) { return x.id === _promId; });
   if (!p) return;
+  sonido('ok');
   p.estado = 'cumplida'; p.actualizado = new Date().toISOString();
   guardarClientesLocal(); persist(); cerrarPromesa(); refrescarTodo();
   showToast('Promesa cumplida', 2400, 'ok');
@@ -3017,6 +3030,7 @@ async function borrarPromesa() {
   if (!c || !id) return;
   var ok = await ddPreguntar({titulo: '¿Borrar esta promesa?', texto: c.nombre + '\n\nSe borra del todo (no queda en el historial ni cuenta en su calificacion).', si: 'Sí, borrar', no: 'Cancelar', peligro: true});
   if (!ok) return;
+  sonido('eliminar');
   c = clientePorId(c.id);
   if (!c) return;
   c.promesas = (c.promesas || []).filter(function(x) { return x.id !== id; });
@@ -3111,6 +3125,7 @@ function guardarClienteForm() {
   var ced = document.getElementById('c-cedula').value.trim();
   var otro = soloDigitos(ced).length >= 5 ? clientes.find(function(x) { return x.id !== c.id && soloDigitos(x.cedula) === soloDigitos(ced); }) : null;
   if (otro) { showToast('Ya existe otro cliente con esa cedula: ' + otro.nombre, 4000); return; }
+  sonido('guardar');
   c.nombre = nombre; c.cedula = ced;
   c.telefono = document.getElementById('c-telefono').value.trim();
   c.direccion = document.getElementById('c-direccion').value.trim();
@@ -3141,6 +3156,7 @@ async function eliminarClienteActual() {
       '\n\nSi fue un error, el cliente' + (idxs.length ? ' y sus préstamos se pueden' : ' se puede') + ' recuperar desde "Recuperar datos borrados o cambiados". Las fotos (perfil, cédula y comprobantes) se borran para siempre.',
     si: 'Sí, eliminar', no: 'Cancelar', peligro: true});
   if (!ok) return;
+  sonido('eliminar');
   var id = c.id;
   var rutas = [], claves = [];
   var actual = clientePorId(id) || c;
@@ -3335,6 +3351,7 @@ async function saveDebtor() {
       si: 'Sí, prestarle', no: 'No prestar', peligro: true});
     if (!prestar) return;
   }
+  sonido(anterior ? 'guardar' : 'prestar');   // suena ya, antes de guardar y redibujar
 
   // 2) Prestamo: las cuotas siempre se recalculan con los datos nuevos (montos y fechas).
   //    Se conserva todo lo demas que tenia (abonos, abonos borrados, etc.)
@@ -3386,6 +3403,7 @@ async function deleteDebtor(i, e) {
       (conFotos ? '\nLas fotos de los comprobantes se borran para siempre.' : ''),
     si: 'Sí, eliminar', no: 'Cancelar', peligro: true});
   if (!ok) return;
+  sonido('eliminar');
   var idx = idxPorId(uid);
   if (idx < 0) return;
   var fotos = fotosDePrestamo(debtors[idx]);
@@ -3410,6 +3428,7 @@ async function markPaid(i, e) {
       : d.nombre + '\n\nEl préstamo quedará marcado como pagado.',
     si: 'Confirmar', no: 'Cancelar'});
   if (!ok) return;
+  sonido('pagar');
   var k = idxPorId(uid);
   if (k < 0) return;
   d = debtors[k];
@@ -3443,6 +3462,7 @@ async function marcarCuotaCompleta(di, qi, el) {
       ' con fecha de hoy (' + dateStr(hoyISO()) + ').\nSi el pago fue otro día o por otro valor, usa "Registrar abono".',
     si: 'Confirmar', no: 'Cancelar'});
   if (!ok) return;
+  sonido('pagar');
   var k = idxPorId(uid);
   if (k < 0) return;
   d = debtors[k];
@@ -3824,6 +3844,7 @@ async function guardarAbono() {
       si: 'Sí, registrar', no: 'Corregir'});
     if (!seguir) return;
   }
+  sonido('pagar');   // suena ya, antes de guardar y redibujar
   var metodo = document.getElementById('ab-metodo').value;
   try { localStorage.setItem('dd_ultimo_metodo', metodo); } catch(e) {}
   var abono = {id: nuevoIdAbono(), monto: monto, fecha: fecha, nota: document.getElementById('ab-nota').value.trim(),
@@ -4118,6 +4139,7 @@ async function eliminarAbono(di, ai, e) {
       (conFoto ? '\nLa foto del comprobante se borra para siempre.' : ''),
     si: 'Sí, borrar', no: 'Cancelar', peligro: true});
   if (!ok) return;
+  sonido('eliminar');
   var i = idxPorId(uid);
   if (i < 0) return;
   var lista = debtors[i].abonos || [];
@@ -4476,9 +4498,13 @@ function anMesesDelRango() {
 /* Lo prestado (por fecha del prestamo) y lo cobrado (por fecha del pago) de un mes */
 function movimientosDelMes(y, m) {
   var clave = y + '-' + String(m + 1).padStart(2, '0');
-  var r = {prestado: 0, cobrado: 0, nPrest: 0, nPagos: 0};
+  var r = {prestado: 0, cobrado: 0, nPrest: 0, nPagos: 0, porCobrar: 0, nCobrar: 0};
   debtors.forEach(function(d) {
     if (String(d.fechaPrestamo || '').slice(0, 7) === clave) { r.prestado += parseFloat(d.monto) || 0; r.nPrest++; }
+    allocateCuotas(d).forEach(function(c) {
+      if (c.status === 'pagada' || !c.fecha || c.fecha.slice(0, 7) !== clave) return;
+      r.porCobrar += c.status === 'parcial' ? c.restante : c.monto; r.nCobrar++;
+    });
     (d.abonos || []).forEach(function(a) { if (String(a.fecha || '').slice(0, 7) === clave) { r.cobrado += parseFloat(a.monto) || 0; r.nPagos++; } });
   });
   return r;
@@ -4609,8 +4635,9 @@ function renderMonthlyChart() {
   pintarMesElegido(datos);
 }
 function anElegirMes(y, m) {
-  anSel = y + '-' + m; sonido('tap');
+  anSel = y + '-' + m;
   renderMonthlyChart();
+  abrirMesDetail(m, y);
 }
 function pintarMesElegido(datos) {
   var d = datos.filter(function(x) { return x.y + '-' + x.m === anSel; })[0];
@@ -4618,11 +4645,11 @@ function pintarMesElegido(datos) {
   var dif = d.cobrado - d.prestado;
   document.getElementById('an-mes-sel').innerHTML =
     '<div class="gr-sel-cab"><strong>' + MESES_FULL[d.m] + ' ' + d.y + '</strong>' +
-      '<button class="btn-sm" onclick="abrirMesDetail(' + d.m + ',' + d.y + ')"><i class="ti ti-list-details"></i>Ver movimientos</button></div>' +
+      '<button class="btn-sm" onclick="abrirMesDetail(' + d.m + ',' + d.y + ')"><i class="ti ti-list-details"></i>' + (d.nCobrar ? 'A quién cobrar' : 'Ver detalle') + '</button></div>' +
     '<div class="gr-sel-num">' +
       '<div><span><i class="pt pt-prestado" style="width:8px;height:8px;border-radius:2px;display:inline-block"></i>Prestaste</span><strong>' + money(d.prestado) + '</strong><span>' + d.nPrest + ' préstamo' + (d.nPrest === 1 ? '' : 's') + '</span></div>' +
       '<div><span><i class="pt pt-cobrado" style="width:8px;height:8px;border-radius:2px;display:inline-block"></i>Te pagaron</span><strong>' + money(d.cobrado) + '</strong><span>' + d.nPagos + ' pago' + (d.nPagos === 1 ? '' : 's') + '</span></div>' +
-      '<div><span>Diferencia</span><strong>' + (dif >= 0 ? '+' : '-') + money(Math.abs(dif)).replace('-', '') + '</strong><span>' + (dif >= 0 ? 'entró más de lo que salió' : 'salió más de lo que entró') + '</span></div>' +
+      '<div><span><i class="ti ti-alert-circle" style="font-size:13px"></i>Falta cobrar</span><strong' + (d.porCobrar > 0.5 ? ' style="color:var(--accent2)"' : '') + '>' + money(d.porCobrar) + '</strong><span>' + d.nCobrar + ' cuota' + (d.nCobrar === 1 ? '' : 's') + ' sin pagar</span></div>' +
     '</div>';
 }
 
@@ -4718,13 +4745,13 @@ function abrirMesDetail(mes, anio) {
   var clave = anio + '-' + String(mes + 1).padStart(2, '0');
   var prestamos = [], cobros = [], pendientes = [];
   debtors.forEach(function(d) {
-    if (String(d.fechaPrestamo || '').slice(0, 7) === clave) prestamos.push({nombre: d.nombre, concepto: d.concepto, monto: parseFloat(d.monto) || 0, fecha: d.fechaPrestamo, interes: d.interes});
+    if (String(d.fechaPrestamo || '').slice(0, 7) === clave) prestamos.push({nombre: d.nombre, cid: d.clienteId, concepto: d.concepto, monto: parseFloat(d.monto) || 0, fecha: d.fechaPrestamo, interes: d.interes});
     allocateCuotas(d).forEach(function(c, ci) {
       if (!c.fecha || c.fecha.slice(0, 7) !== clave || c.status === 'pagada') return;
-      pendientes.push({nombre: d.nombre, cuota: ci + 1, monto: c.monto, fecha: c.fecha, aplicado: c.aplicado, restante: c.restante, status: c.status});
+      pendientes.push({nombre: d.nombre, cid: d.clienteId, tel: d.telefono, ri: debtors.indexOf(d), pagado: d.pagado, cuota: ci + 1, total: (d.cuotas || []).length, monto: c.monto, fecha: c.fecha, aplicado: c.aplicado, restante: c.restante, status: c.status});
     });
     (d.abonos || []).forEach(function(a) {
-      if (String(a.fecha || '').slice(0, 7) === clave) cobros.push({nombre: d.nombre, monto: parseFloat(a.monto) || 0, fecha: a.fecha, nota: a.nota, metodo: a.metodo, recibo: a.recibo});
+      if (String(a.fecha || '').slice(0, 7) === clave) cobros.push({nombre: d.nombre, cid: d.clienteId, monto: parseFloat(a.monto) || 0, fecha: a.fecha, nota: a.nota, metodo: a.metodo, recibo: a.recibo});
     });
   });
   var porFecha = function(a, b) { return a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0; };
@@ -4735,29 +4762,31 @@ function abrirMesDetail(mes, anio) {
   document.getElementById('mes-panel-stats').innerHTML =
     '<div class="mes-stat-box"><div class="lbl"><i class="pt pt-prestado" style="width:8px;height:8px;border-radius:2px;display:inline-block"></i>Prestado</div><div class="val">' + money(totP) + '</div></div>' +
     '<div class="mes-stat-box"><div class="lbl"><i class="pt pt-cobrado" style="width:8px;height:8px;border-radius:2px;display:inline-block"></i>Cobrado</div><div class="val">' + money(totC) + '</div></div>' +
-    '<div class="mes-stat-box"><div class="lbl">Falta cobrar</div><div class="val"' + (totF > 0.5 ? ' style="color:var(--accent2)"' : '') + '>' + money(totF) + '</div></div>';
-  var fila = function(nombre, sub, monto, color) {
-    return '<div class="mes-row"><div class="mes-row-left"><div class="mes-row-name">' + esc(nombre) + '</div><div class="mes-row-sub">' + sub + '</div></div>' +
+    '<div class="mes-stat-box"><div class="lbl"><i class="ti ti-alert-circle"></i>Falta cobrar</div><div class="val"' + (totF > 0.5 ? ' style="color:var(--accent2)"' : '') + '>' + money(totF) + '</div></div>';
+  var fila = function(nombre, sub, monto, color, cid) {
+    return '<div class="mes-row"' + (cid ? ' onclick="cerrarMesDetail();abrirPerfil(\'' + escJs(cid) + '\')"' : '') + '><div class="mes-row-left"><div class="mes-row-name">' + esc(nombre) + '</div><div class="mes-row-sub">' + sub + '</div></div>' +
       '<div class="mes-row-monto"' + (color ? ' style="color:' + color + '"' : '') + '>' + monto + '</div></div>';
   };
   var titulo = function(txt, n, color) { return '<div class="mes-section-lbl"><span class="mes-section-dot" style="background:' + color + '"></span>' + txt + ' (' + n + ')</div>'; };
   var html = '';
   if (!prestamos.length && !cobros.length && !pendientes.length) html = '<div class="mes-empty"><div class="icon"><i class="ti ti-calendar-off"></i></div>Sin movimientos este mes</div>';
+  if (pendientes.length) {
+    html += titulo('Por cobrar', pendientes.length, 'var(--accent2)');
+    pendientes.forEach(function(x) {
+      var dl = daysLeft(x.fecha), b = dl < 0 ? ['vencido', 'Venció hace ' + Math.abs(dl) + ' día' + (Math.abs(dl) === 1 ? '' : 's')] : dl === 0 ? ['hoy', 'Vence hoy'] : dl === 1 ? ['pronto', 'Mañana'] : dl <= 3 ? ['pronto', 'En ' + dl + ' días'] : ['ok', 'En ' + dl + ' días'];
+      html += fila(x.nombre, 'Cuota ' + x.cuota + ' de ' + x.total + ' · ' + fechaCorta(x.fecha) + '<span class="mes-badge ' + b[0] + '">' + b[1] + '</span>' +
+        (x.status === 'parcial' ? '<span class="mes-badge parcial">Abonó ' + money(x.aplicado) + '</span>' : '') +
+        (x.tel && !x.pagado && x.ri >= 0 ? '<button class="btn-sm btn-wa mes-wa" onclick="event.stopPropagation();enviarWA(' + x.ri + ',event)"><i class="ti ti-brand-whatsapp"></i>Recordar</button>' : ''),
+        money(x.status === 'parcial' ? x.restante : x.monto), dl < 0 ? 'var(--accent2)' : '', x.cid);
+    });
+  }
   if (cobros.length) {
     html += titulo('Pagos recibidos', cobros.length, 'var(--serie-cobrado)');
-    cobros.forEach(function(x) { html += fila(x.nombre, dateStr(x.fecha) + ' · ' + esc(x.metodo || 'Pago') + (x.recibo ? ' · ' + numeroRecibo(x.recibo) : '') + (x.nota ? ' · ' + esc(x.nota) : ''), '+' + money(x.monto)); });
+    cobros.forEach(function(x) { html += fila(x.nombre, dateStr(x.fecha) + ' · ' + esc(x.metodo || 'Pago') + (x.recibo ? ' · ' + numeroRecibo(x.recibo) : '') + (x.nota ? ' · ' + esc(x.nota) : ''), '+' + money(x.monto), 'var(--accent)', x.cid); });
   }
   if (prestamos.length) {
     html += titulo('Préstamos entregados', prestamos.length, 'var(--serie-prestado)');
-    prestamos.forEach(function(x) { html += fila(x.nombre, dateStr(x.fecha) + (x.concepto ? ' · ' + esc(x.concepto) : '') + (x.interes ? ' · ' + x.interes + '% mensual' : ''), money(x.monto)); });
-  }
-  if (pendientes.length) {
-    html += titulo('Cuotas sin pagar', pendientes.length, 'var(--accent2)');
-    pendientes.forEach(function(x) {
-      var dl = daysLeft(x.fecha), b = dl < 0 ? ['vencido', 'Venció hace ' + Math.abs(dl) + ' d'] : dl === 0 ? ['hoy', 'Vence hoy'] : dl <= 3 ? ['pronto', 'En ' + dl + ' d'] : ['ok', 'En ' + dl + ' días'];
-      html += fila(x.nombre, 'Cuota ' + x.cuota + ' · ' + dateStr(x.fecha) + '<span class="mes-badge ' + b[0] + '">' + b[1] + '</span>' +
-        (x.status === 'parcial' ? '<span class="mes-badge parcial">Abonó ' + money(x.aplicado) + '</span>' : ''), money(x.status === 'parcial' ? x.restante : x.monto), dl < 0 ? 'var(--accent2)' : '');
-    });
+    prestamos.forEach(function(x) { html += fila(x.nombre, dateStr(x.fecha) + (x.concepto ? ' · ' + esc(x.concepto) : '') + (x.interes ? ' · ' + x.interes + '% mensual' : ''), money(x.monto), '', x.cid); });
   }
   document.getElementById('mes-detail-body').innerHTML = html;
   document.getElementById('mes-detail-overlay').classList.add('open');
