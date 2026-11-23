@@ -3,7 +3,7 @@
    - Abre la app sin internet (con los datos guardados en el dispositivo).
    - Recibe las notificaciones (Web Push) y abre la app al tocarlas.
    ════════════════════════════════════════════════════════════════════════════ */
-const VERSION = 'dd-v3';
+const VERSION = 'dd-v4';
 const BASICOS = ['./', './index.html', './manifest.webmanifest', './icono-180.png', './icono-192.png', './icono-512.png', './insignia-96.png'];
 
 self.addEventListener('install', e => {
