@@ -543,11 +543,35 @@ const legado = [
   const cF = await evalua(E, id => clientes.find(x => x.id === id), carlosId);
   ok(B3.fotos.has(cF.foto) && /clientes\/.+\/perfil\.jpg$/.test(cF.foto), '2.1 la foto de perfil se guarda en la carpeta privada');
   ok(await E.locator('#perfil .perfil-foto img').count() === 1 && await E.locator('#list .avatar-foto img').count() === 1, '2.1 la foto reemplaza las iniciales en el perfil y en la lista');
-  [chooser] = await Promise.all([E.waitForEvent('filechooser'), E.locator('.doc-tile').first().click()]);
-  await chooser.setFiles(foto);
+  // La cedula se escanea: galeria -> ajustar las 4 esquinas -> recortar -> guardar
+  await E.locator('.doc-tile').first().click();
+  await E.waitForSelector('#scanner.open');
+  ok(await evalua(E, () => document.getElementById('scanner').dataset.paso === 'camara'), 'escaner: se abre en la camara con el marco de la cedula');
+  // foto de prueba: una "cedula" inclinada sobre una mesa
+  const fotoCed = Buffer.from(await evalua(E, () => {
+    const c = document.createElement('canvas'); c.width = 1200; c.height = 900; const g = c.getContext('2d');
+    g.fillStyle = '#3a3f47'; g.fillRect(0, 0, 1200, 900);
+    g.translate(600, 450); g.rotate(-0.08); g.fillStyle = '#e9f0f7'; g.fillRect(-430, -270, 860, 540);
+    g.fillStyle = '#1e3f94'; g.fillRect(-430, -270, 860, 80); g.fillStyle = '#222'; g.font = '48px sans-serif'; g.fillText('CEDULA DE CIUDADANIA', -380, -110);
+    return c.toDataURL('image/png').split(',')[1];
+  }), 'base64');
+  [chooser] = await Promise.all([E.waitForEvent('filechooser'), E.click('#scanner .paso-camara .scan-btn')]);
+  await chooser.setFiles({name: 'cedula.png', mimeType: 'image/png', buffer: fotoCed});
+  await E.waitForFunction(() => document.getElementById('scanner').dataset.paso === 'ajustar', null, {timeout: 5000});
+  ok(await E.locator('#scan-ajuste .scan-punto').count() === 4, 'escaner: se pueden mover las 4 esquinas');
+  // se mueve una esquina con el dedo (arrastrar)
+  const punto = await E.locator('#scan-ajuste .scan-punto').first().boundingBox();
+  await E.mouse.move(punto.x + 22, punto.y + 22); await E.mouse.down(); await E.mouse.move(punto.x + 40, punto.y + 35, {steps: 4});
+  ok(await evalua(E, () => getComputedStyle(document.getElementById('scan-lupa')).display === 'block'), 'escaner: al mover una esquina aparece la lupa');
+  await E.mouse.up();
+  await E.click('#scanner .paso-ajustar .btn-save');
+  await E.waitForFunction(() => document.getElementById('scanner').dataset.paso === 'listo', null, {timeout: 8000});
+  const tam = await evalua(E, () => [SCAN.salida.width, SCAN.salida.height]);
+  ok(tam[0] === 1100 && tam[1] === 694, 'escaner: la cedula queda derecha y del tamano exacto (' + tam.join('x') + ')');
+  await E.click('#scanner .paso-listo .btn-save');
   await E.waitForFunction(id => clientes.find(x => x.id === id).cedulaFrente, carlosId, {timeout: 8000});
-  ok(/cedula-frente\.jpg$/.test(await evalua(E, id => clientes.find(x => x.id === id).cedulaFrente, carlosId)), '2.2 la foto de la cedula (frente) se guarda');
-  ok(/Guardada/.test(await E.locator('.doc-tile').first().innerText()), '2.2 en el perfil se ve que la cedula ya esta guardada');
+  ok(/cedula-frente\.jpg$/.test(await evalua(E, id => clientes.find(x => x.id === id).cedulaFrente, carlosId)) && !await evalua(E, () => document.getElementById('scanner').classList.contains('open')), '2.2 la cedula escaneada (frente) se guarda');
+  ok(/Escaneada/.test(await E.locator('.doc-tile').first().innerText()), '2.2 en el perfil se ve que la cedula ya esta escaneada');
   await E.locator('.doc-tile').first().click();
   await E.waitForFunction(() => (document.getElementById('foto-img').src || '').startsWith('data:image'), null, {timeout: 5000});
   ok(await E.locator('#foto-acciones button').count() === 2, '2.2 al ver la cedula se puede cambiar o borrar');
@@ -573,6 +597,26 @@ const legado = [
   }, [iso(-70), iso(-40), iso(-10)]);
   const mariaId = await evalua(E, () => clientes.find(c => c.nombre === 'Maria Rios').id);
   const calC = await evalua(E, id => calificacionCliente(clientePorId(id)), mariaId);
+  // Puntualidad en recibos y estado de cuenta
+  const pun = await evalua(E, ([luis, hoyMenos3, hoyMas5]) => {
+    const dm = debtors.find(d => d.id === 'dm'), dl = debtors.find(d => d.id === 'dl');
+    const r1 = puntualidadReciboAbono(dm, dm.abonos[0]);
+    const c = crearOBuscarCliente('Pedro Antes', '80999111', '');
+    debtors.push({id: 'dp', clienteId: c.id, nombre: c.nombre, concepto: 'Antes', fechaPrestamo: hoyMenos3, fechaPago: hoyMas5, monto: 100000, interes: 0,
+      cuotas: [{monto: 50000, fecha: hoyMas5}, {monto: 50000, fecha: hoyMas5}], abonos: [{id: 'p1', monto: 50000, fecha: hoyMenos3, recibo: siguienteNumeroRecibo()}], pagado: false});
+    const dp = debtors[debtors.length - 1];
+    const r2 = puntualidadReciboAbono(dp, dp.abonos[0]);
+    const m = moraCliente(prestamosDe(luis));
+    const q = puntualidadPrestamo(dl).cuotas[0];
+    debtors.pop();
+    return {r1: r1.mensaje && r1.mensaje.titulo, f1: r1.filas.map(f => f.estado), r2: r2.mensaje && r2.mensaje.titulo, f2: r2.filas.map(f => f.estado), mora: m, atraso: q.atraso};
+  }, [luisId, iso(-3), iso(5)]);
+  ok(/puntual/i.test(pun.r1) && /a tiempo/i.test(pun.f1[0]), 'recibo: pago en la fecha → "¡Gracias por pagar puntual!" (' + pun.f1[0] + ')');
+  ok(/antes de tiempo/i.test(pun.r2) && /8 días antes/.test(pun.f2[0]), 'recibo: pago anticipado → felicita (' + pun.f2[0] + ')');
+  ok(pun.mora.cuotas === 1 && pun.mora.maxDias === 45 && pun.atraso === 45, 'estado de cuenta: cuenta los días en mora (' + pun.mora.maxDias + ' días)');
+  await evalua(E, () => { const dm = debtors.findIndex(d => d.id === 'dm'); verReciboAbono(dm, 0); });
+  ok(/puntual/i.test(await E.locator('#rc-mensaje').innerText()) && /Cuota 1 de 2/.test(await E.locator('#rc-table').innerText()), 'recibo: muestra la cuota que se pagó y el mensaje');
+  await evalua(E, () => cerrarRecibo());
   const calL = await evalua(E, id => calificacionCliente(clientePorId(id)), luisId);
   ok(calC.estrellas === 5 && /Excelente/.test(calC.etiqueta) && calL.estrellas === 1 && /Mal pagador/.test(calL.etiqueta), '3.1 calificacion: Maria (paga a tiempo) ' + calC.estrellas + '★ (' + calC.etiqueta + '), Luis ' + calL.estrellas + '★ (' + calL.etiqueta + ')');
   ok(await E.locator('.perfil-cal .est.llena').count() >= 1, '3.1 la calificacion se ve en el perfil');

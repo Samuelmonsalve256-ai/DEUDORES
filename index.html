@@ -532,6 +532,18 @@ body.con-perfil .btn-add:not(.perfil-acciones .btn-add), body.con-perfil .tabs-n
 .rc-table-sub { font-size:10.5px; color:#8A93A1; }
 .rc-table-amount { font-weight:700; font-size:13.5px; color:#13795B; flex-shrink:0; }
 .rc-totales { background:#0E1116; padding:1.1rem 1.4rem; }
+.rc-cuota-est { display:inline-block; font-size:10px; font-weight:700; padding:2px 7px; border-radius:10px; margin-top:3px; }
+.rc-cuota-est.antes, .rc-cuota-est.atiempo { background:#E8F3EE; color:#0B5A42; }
+.rc-cuota-est.tarde { background:#FBF4E6; color:#7A4F12; }
+.rc-cuota-est.mora { background:#FBEEED; color:#9A2F29; }
+.rc-cuota-est.parcial { background:#ECF1FC; color:#1E3F94; }
+.rc-mensaje { margin:0 1.4rem 1rem; border-radius:12px; padding:12px 14px; display:flex; gap:10px; align-items:flex-start; font-size:12px; line-height:1.45; }
+.rc-mensaje:empty { display:none; }
+.rc-mensaje i { font-size:20px; flex-shrink:0; margin-top:-1px; }
+.rc-mensaje strong { display:block; font-size:13px; margin-bottom:2px; }
+.rc-mensaje.bien { background:#E8F3EE; color:#0B5A42; }
+.rc-mensaje.tarde { background:#FBF4E6; color:#7A4F12; }
+.rc-mensaje.mora { background:#FBEEED; color:#9A2F29; }
 .rc-total-row { display:flex; justify-content:space-between; align-items:center; padding:.35rem 0; font-size:12.5px; }
 .rc-total-lbl { color:rgba(255,255,255,.6); }
 .rc-total-val { font-weight:700; color:#fff; }
@@ -635,6 +647,58 @@ body.montos-ocultos .prom-monto, body.montos-ocultos .cal-sub, body.montos-ocult
   .pin-icono { width:56px; height:56px; border-radius:17px; margin-bottom:12px; } .pin-icono i { font-size:28px; }
   .pin-puntos { margin:22px 0 22px; }
 }
+
+/* ── Escáner de cédula ──────────────────────────────────────────────────────── */
+.scan { display:none; position:fixed; inset:0; z-index:800; background:#0B0D11; color:#fff; flex-direction:column; }
+.scan.open { display:flex; }
+.scan-top { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:calc(env(safe-area-inset-top) + 10px) 14px 10px; }
+.scan-x { width:40px; height:40px; border-radius:50%; border:none; background:rgba(255,255,255,.12); color:#fff; font-size:20px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; }
+.scan-tit { text-align:center; display:flex; flex-direction:column; font-weight:700; font-size:16px; }
+.scan-tit small { font-weight:500; font-size:12px; color:rgba(255,255,255,.6); }
+.scan-zona { flex:1; position:relative; overflow:hidden; min-height:0; }
+.scan-camara, .scan-ajuste, .scan-listo { position:absolute; inset:0; display:none; }
+.scan[data-paso="camara"] .scan-camara, .scan[data-paso="ajustar"] .scan-ajuste, .scan[data-paso="listo"] .scan-listo { display:block; }
+.scan-camara video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; background:#000; }
+.scan-marco { position:absolute; left:50%; top:46%; transform:translate(-50%,-50%); width:min(88%, 560px); aspect-ratio:85.6 / 54; border-radius:14px;
+  box-shadow:0 0 0 9999px rgba(11,13,17,.62); }
+.scan-marco .esq { position:absolute; width:30px; height:30px; border:4px solid #5FD4A8; }
+.scan-marco .a { left:-3px; top:-3px; border-right:none; border-bottom:none; border-radius:14px 0 0 0; }
+.scan-marco .b { right:-3px; top:-3px; border-left:none; border-bottom:none; border-radius:0 14px 0 0; }
+.scan-marco .c { right:-3px; bottom:-3px; border-left:none; border-top:none; border-radius:0 0 14px 0; }
+.scan-marco .d { left:-3px; bottom:-3px; border-right:none; border-top:none; border-radius:0 0 0 14px; }
+.scan-ayuda { position:absolute; left:16px; right:16px; bottom:18px; text-align:center; font-size:13.5px; color:rgba(255,255,255,.85); }
+.scan-sincam { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:24px; text-align:center; background:#0B0D11; }
+.scan-sincam[hidden] { display:none; }
+.scan-sincam i { font-size:40px; color:rgba(255,255,255,.5); }
+.scan-sincam span { font-size:13.5px; color:rgba(255,255,255,.7); max-width:300px; }
+.scan-ajuste canvas#scan-fuente { position:absolute; }
+.scan-ajuste svg { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+.scan-ajuste polygon { fill:rgba(95,212,168,.14); stroke:#5FD4A8; stroke-width:2.5; stroke-linejoin:round; }
+.scan-punto { position:absolute; width:44px; height:44px; margin:-22px 0 0 -22px; border-radius:50%; touch-action:none; cursor:grab; display:flex; align-items:center; justify-content:center; }
+.scan-punto::after { content:''; width:20px; height:20px; border-radius:50%; background:#fff; border:3px solid #13795B; box-shadow:0 2px 8px rgba(0,0,0,.45); }
+.scan-lupa { position:absolute; width:120px; height:120px; border-radius:50%; border:3px solid #fff; box-shadow:0 6px 20px rgba(0,0,0,.5); display:none; pointer-events:none; background:#000; }
+.scan-listo { display:none; align-items:center; justify-content:center; padding:20px; }
+.scan[data-paso="listo"] .scan-listo { display:flex; }
+.scan-listo img { max-width:100%; max-height:100%; border-radius:12px; box-shadow:0 16px 40px rgba(0,0,0,.55); background:#fff; }
+.scan-pie { padding:14px 16px calc(env(safe-area-inset-bottom) + 16px); }
+.scan-botones { display:none; }
+.scan[data-paso="camara"] .paso-camara { display:flex; align-items:center; justify-content:space-around; }
+.scan[data-paso="ajustar"] .paso-ajustar { display:flex; gap:10px; }
+.scan[data-paso="listo"] .paso-listo { display:flex; flex-direction:column; gap:12px; align-items:stretch; }
+.paso-ajustar button, .scan-fila button { flex:1; padding:14px; font-size:15px; }
+.scan .btn-cancel { background:rgba(255,255,255,.1); color:#fff; border-color:rgba(255,255,255,.18); }
+.scan .btn-save { background:#fff; color:#0E1116; }
+.scan-fila { display:flex; gap:10px; }
+.scan .scan-modo { align-self:center; background:rgba(255,255,255,.1); }
+.scan .scan-modo button { color:rgba(255,255,255,.7); padding:7px 14px; }
+.scan .scan-modo button.on { background:#fff; color:#0E1116; }
+.scan-btn { width:64px; background:none; border:none; color:#fff; display:flex; flex-direction:column; align-items:center; gap:4px; font-size:12px; cursor:pointer; }
+.scan-btn i { width:46px; height:46px; border-radius:50%; background:rgba(255,255,255,.12); display:flex; align-items:center; justify-content:center; font-size:22px; }
+.scan-disparo { width:74px; height:74px; border-radius:50%; border:4px solid #fff; background:transparent; padding:4px; cursor:pointer; }
+.scan-disparo span { display:block; width:100%; height:100%; border-radius:50%; background:#fff; transition:transform .1s; }
+.scan-disparo:active span { transform:scale(.88); }
+.scan-disparo:disabled { opacity:.35; }
+.doc-tile .doc-thumb { width:52px; height:33px; border-radius:5px; object-fit:cover; flex-shrink:0; box-shadow:0 1px 3px rgba(16,24,40,.25); }
 
 /* ── Colores con significado (para no confundirse) ──────────────────────────────
    verde = cobrado/pagado · rojo = vencido/por cobrar · ámbar = hoy · naranja = pronto
@@ -1099,6 +1163,58 @@ body.montos-ocultos .gr-leyenda strong, body.montos-ocultos .gr-caja text.gr-eje
   </div>
 </div>
 
+<!-- ESCANER DE CEDULA -->
+<div class="scan" id="scanner" data-paso="camara">
+  <div class="scan-top">
+    <button class="scan-x" onclick="cerrarEscaner()" aria-label="Cerrar"><i class="ti ti-x"></i></button>
+    <div class="scan-tit"><span id="scan-titulo">Escanear cédula</span><small id="scan-sub">Paso 1 de 3 · Toma la foto</small></div>
+    <span style="width:40px"></span>
+  </div>
+  <div class="scan-zona" id="scan-zona">
+    <!-- Paso 1: camara con el marco de la cedula -->
+    <div class="scan-camara">
+      <video id="scan-video" playsinline muted autoplay></video>
+      <div class="scan-marco" id="scan-marco"><i class="esq a"></i><i class="esq b"></i><i class="esq c"></i><i class="esq d"></i></div>
+      <div class="scan-ayuda" id="scan-ayuda">Pon la cédula dentro del marco, sobre una mesa oscura y con buena luz</div>
+      <div class="scan-sincam" id="scan-sincam" hidden>
+        <i class="ti ti-camera-off"></i>
+        <strong>No se pudo abrir la cámara aquí</strong>
+        <span>Toma la foto con la cámara del iPhone o elígela de la galería. Después ajustas los bordes.</span>
+      </div>
+    </div>
+    <!-- Paso 2: ajustar las 4 esquinas -->
+    <div class="scan-ajuste" id="scan-ajuste">
+      <canvas id="scan-fuente"></canvas>
+      <svg id="scan-poli"><polygon points=""/></svg>
+      <div class="scan-punto" data-i="0"></div><div class="scan-punto" data-i="1"></div><div class="scan-punto" data-i="2"></div><div class="scan-punto" data-i="3"></div>
+      <canvas class="scan-lupa" id="scan-lupa" width="120" height="120"></canvas>
+    </div>
+    <!-- Paso 3: resultado -->
+    <div class="scan-listo"><img id="scan-img" alt="Cédula escaneada"></div>
+  </div>
+  <div class="scan-pie">
+    <div class="scan-botones paso-camara">
+      <button class="scan-btn" onclick="escanerGaleria()"><i class="ti ti-photo"></i><span>Galería</span></button>
+      <button class="scan-disparo" id="scan-disparo" onclick="escanerCapturar()" aria-label="Tomar foto"><span></span></button>
+      <button class="scan-btn" id="scan-camfoto" onclick="escanerCamaraIphone()"><i class="ti ti-camera"></i><span>Cámara</span></button>
+    </div>
+    <div class="scan-botones paso-ajustar">
+      <button class="btn-cancel" onclick="escanerPaso('camara')"><i class="ti ti-camera-rotate"></i>Repetir</button>
+      <button class="btn-save" onclick="escanerProcesar()"><i class="ti ti-crop"></i>Recortar</button>
+    </div>
+    <div class="scan-botones paso-listo">
+      <div class="an-seg scan-modo" id="scan-modo">
+        <button data-r="color" onclick="escanerModo('color')">Color</button>
+        <button data-r="bn" onclick="escanerModo('bn')">Blanco y negro</button>
+      </div>
+      <div class="scan-fila">
+        <button class="btn-cancel" onclick="escanerPaso('ajustar')"><i class="ti ti-adjustments"></i>Ajustar bordes</button>
+        <button class="btn-save" onclick="escanerGuardar()"><i class="ti ti-check"></i>Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- PERFIL DEL CLIENTE -->
 <div class="perfil-overlay" id="perfil">
   <div class="perfil-top">
@@ -1372,6 +1488,9 @@ body.montos-ocultos .gr-leyenda strong, body.montos-ocultos .gr-caja text.gr-eje
         <!-- Tabla de pagos -->
         <div class="rc-section-label">DETALLE DE PAGOS</div>
         <div class="rc-table" id="rc-table"></div>
+
+        <!-- Mensaje segun la puntualidad (felicitacion o aviso de mora) -->
+        <div class="rc-mensaje" id="rc-mensaje"></div>
 
         <!-- Divider zigzag invertido -->
         <div class="rc-zigzag" style="transform:scaleY(-1)"></div>
@@ -2200,6 +2319,48 @@ function allocateCuotas(d) {
   return resultado;
 }
 
+/* Puntualidad de un prestamo: para cada cuota, el dia en que quedo pagada y con cuantos
+   dias de diferencia (negativo = antes de tiempo, 0 = el mismo dia, positivo = tarde),
+   o cuantos dias lleva vencida si aun no se paga. Los abonos se aplican en orden de fecha. */
+function abonosOrdenados(d) {
+  return (d.abonos || []).map(function(a, k) { return {a: a, k: k}; }).filter(function(x) { return x.a && x.a.fecha; })
+    .sort(function(x, y) { return String(x.a.fecha).localeCompare(String(y.a.fecha)) || String(x.a.creado || '').localeCompare(String(y.a.creado || '')) || x.k - y.k; });
+}
+function puntualidadPrestamo(d) {
+  var hoy = hoyISO();
+  var cuotas = (d.cuotas || []).length ? d.cuotas : (d.fechaPago ? [{monto: totalDeuda(d), fecha: d.fechaPago}] : []);
+  var orden = abonosOrdenados(d), acum = 0;
+  orden.forEach(function(x) { x.ini = acum; acum += parseFloat(x.a.monto) || 0; x.fin = acum; });
+  var acumC = 0;
+  var lista = cuotas.map(function(q, i) {
+    var ini = acumC; acumC += parseFloat(q.monto) || 0;
+    var r = {num: i + 1, total: cuotas.length, fecha: q.fecha, monto: parseFloat(q.monto) || 0, ini: ini, fin: acumC,
+             pagadaEl: null, dias: null, atraso: 0, restante: Math.max(0, acumC - Math.max(ini, Math.min(acum, acumC)))};
+    if (r.restante < 0.5) {
+      var pagadora = orden.filter(function(x) { return x.fin >= acumC - 0.5; })[0];
+      r.restante = 0;
+      r.pagadaEl = pagadora ? pagadora.a.fecha : q.fecha;
+      if (q.fecha) r.dias = diasEntreISO(q.fecha, r.pagadaEl);
+    } else if (q.fecha && q.fecha < hoy) r.atraso = diasEntreISO(q.fecha, hoy);
+    return r;
+  });
+  return {cuotas: lista, abonos: orden};
+}
+function txtDias(n) { return n + ' día' + (Math.abs(n) === 1 ? '' : 's'); }
+/* "3 días antes", "el mismo día", "5 días tarde" */
+function txtPuntualidad(dias) { return dias < 0 ? txtDias(-dias) + ' antes' : dias === 0 ? 'el mismo día' : txtDias(dias) + ' tarde'; }
+/* Mora actual de un cliente (todas sus cuotas vencidas sin pagar) */
+function moraCliente(idxs) {
+  var r = {cuotas: 0, valor: 0, maxDias: 0};
+  idxs.forEach(function(i) {
+    if (debtors[i].pagado) return;
+    puntualidadPrestamo(debtors[i]).cuotas.forEach(function(q) {
+      if (q.atraso > 0) { r.cuotas++; r.valor += q.restante; r.maxDias = Math.max(r.maxDias, q.atraso); }
+    });
+  });
+  return r;
+}
+
 /* Resumen de un deudor: totales, cuotas y la proxima fecha que importa */
 function resumenDeudor(d) {
   var total  = totalDeuda(d);
@@ -2742,9 +2903,9 @@ function avatarHTML(c, clase) {
 function tileDocumento(c, campo) {
   var tiene = !!c[campo], pend = fotoPendiente(claveFotoCliente(c.id, campo));
   return '<button class="doc-tile' + (tiene || pend ? ' lleno' : '') + '" onclick="tocarFotoCliente(\'' + campo + '\')">' +
-    '<span class="doc-ico"><i class="ti ti-id"></i></span>' +
+    '<span class="doc-ico"><i class="ti ti-' + (tiene || pend ? 'id' : 'scan') + '"></i></span>' +
     '<span class="doc-txt"><strong>' + NOMBRE_FOTO[campo] + '</strong>' +
-    '<em>' + (pend ? '<i class="ti ti-cloud-upload"></i> Esperando internet' : tiene ? '<i class="ti ti-check"></i> Guardada · ver' : 'Agregar foto') + '</em></span></button>';
+    '<em>' + (pend ? '<i class="ti ti-cloud-upload"></i> Esperando internet' : tiene ? '<i class="ti ti-check"></i> Escaneada · ver' : 'Escanear') + '</em></span></button>';
 }
 /* Tocar la foto de perfil o una cedula: si ya tiene, se ve en grande (con Cambiar y Borrar); si no, se elige */
 function tocarFotoCliente(campo) {
@@ -2755,12 +2916,13 @@ function tocarFotoCliente(campo) {
   if (!tiene) { elegirFotoCliente(campo); return; }
   abrirVisorFoto({titulo: NOMBRE_FOTO[campo], info: c.nombre + (pend ? ' · esperando internet para subir' : ''),
     ruta: c[campo], clave: clave, src: (!c[campo] && !pend) ? miniValida(c.fotoMini) : null,
-    acciones: [{texto: '<i class="ti ti-camera"></i> Cambiar foto', fn: function() { elegirFotoCliente(campo); }},
+    acciones: [{texto: campo === 'foto' ? '<i class="ti ti-camera"></i> Cambiar foto' : '<i class="ti ti-scan"></i> Escanear de nuevo', fn: function() { elegirFotoCliente(campo); }},
                {texto: 'Borrar foto', peligro: true, fn: function() { borrarFotoCliente(campo); }}]});
 }
 function elegirFotoCliente(campo) {
   var cid = _perfilId;
   if (!clientePorId(cid)) return;
+  if (campo !== 'foto') { abrirEscaner(campo); return; }
   elegirArchivoFoto(function(f) { procesarFotoCliente(cid, campo, f); });
 }
 async function procesarFotoCliente(cid, campo, file) {
@@ -2800,6 +2962,279 @@ async function borrarFotoCliente(campo) {
   renderList();
   borrarFotosNube([ruta], [claveFotoCliente(c.id, campo)]);
   showToast('Foto borrada', 2400, 'eliminar');
+}
+
+/* ════════════════════ ESCANER DE CEDULA ════════════════════
+   1) Camara con el marco del tamano de una cedula (o foto de la galeria).
+   2) Se ajustan las 4 esquinas (con lupa).
+   3) Se endereza la imagen al tamano exacto de la cedula y se mejora el color.
+   Todo pasa en el telefono, sin internet y sin enviar la foto a otro lado. */
+var SCAN = {campo: null, cid: null, stream: null, fuente: null, pts: null, k: 1, plano: null, modo: 'color', arrastre: -1};
+var SCAN_MAX = 2200, SCAN_ANCHO = 1100, SCAN_ALTO = 694;   // 85,6 x 54 mm
+
+function abrirEscaner(campo) {
+  var cid = _perfilId;
+  if (!clientePorId(cid)) return;
+  SCAN.campo = campo; SCAN.cid = cid; SCAN.modo = 'color';
+  document.getElementById('scan-titulo').textContent = 'Escanear ' + NOMBRE_FOTO[campo].toLowerCase();
+  document.getElementById('scanner').classList.add('open');
+  sonido('abrir');
+  escanerPaso('camara');
+}
+function cerrarEscaner() {
+  escanerApagarCamara();
+  document.getElementById('scanner').classList.remove('open');
+  SCAN.fuente = null; SCAN.plano = null;
+}
+function escanerPaso(paso) {
+  var el = document.getElementById('scanner');
+  el.dataset.paso = paso;
+  document.getElementById('scan-sub').textContent = {camara: 'Paso 1 de 3 · Toma la foto', ajustar: 'Paso 2 de 3 · Mueve los puntos a las esquinas', listo: 'Paso 3 de 3 · Revisa y guarda'}[paso];
+  if (paso === 'camara') escanerEncenderCamara(); else escanerApagarCamara();
+  if (paso === 'ajustar') requestAnimationFrame(escanerPintarAjuste);
+}
+async function escanerEncenderCamara() {
+  var sin = document.getElementById('scan-sincam'), disparo = document.getElementById('scan-disparo');
+  if (SCAN.stream) return;
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { sin.hidden = false; disparo.disabled = true; return; }
+  try {
+    SCAN.stream = await navigator.mediaDevices.getUserMedia({audio: false, video: {facingMode: {ideal: 'environment'}, width: {ideal: 1920}, height: {ideal: 1080}}});
+    if (document.getElementById('scanner').dataset.paso !== 'camara' || !document.getElementById('scanner').classList.contains('open')) { escanerApagarCamara(); return; }
+    var v = document.getElementById('scan-video');
+    v.srcObject = SCAN.stream;
+    try { await v.play(); } catch(e) {}
+    sin.hidden = true; disparo.disabled = false;
+  } catch(e) { sin.hidden = false; disparo.disabled = true; }
+}
+function escanerApagarCamara() {
+  if (SCAN.stream) { SCAN.stream.getTracks().forEach(function(t) { t.stop(); }); SCAN.stream = null; }
+  var v = document.getElementById('scan-video'); if (v) v.srcObject = null;
+}
+/* Toma la foto: guarda el cuadro completo y pone las esquinas donde estaba el marco */
+function escanerCapturar() {
+  var v = document.getElementById('scan-video');
+  if (!v.videoWidth) { showToast('La cámara aún no está lista'); return; }
+  // El video se ve con "cover" (recortado a los lados): se guarda solo lo que se veia en pantalla
+  var rv = v.getBoundingClientRect(), rm = document.getElementById('scan-marco').getBoundingClientRect();
+  var s = Math.max(rv.width / v.videoWidth, rv.height / v.videoHeight);
+  var vx = Math.max(0, (v.videoWidth - rv.width / s) / 2), vy = Math.max(0, (v.videoHeight - rv.height / s) / 2);
+  var vw = Math.min(v.videoWidth, rv.width / s), vh = Math.min(v.videoHeight, rv.height / s);
+  var esc = Math.min(1, SCAN_MAX / Math.max(vw, vh));
+  var c = document.createElement('canvas');
+  c.width = Math.round(vw * esc); c.height = Math.round(vh * esc);
+  c.getContext('2d').drawImage(v, vx, vy, vw, vh, 0, 0, c.width, c.height);
+  // El marco de la pantalla pasa a pixeles de la foto
+  var k = c.width / rv.width;
+  var aFoto = function(x, y) { return {x: Math.max(0, Math.min(c.width, (x - rv.left) * k)), y: Math.max(0, Math.min(c.height, (y - rv.top) * k))}; };
+  SCAN.fuente = c;
+  SCAN.pts = [aFoto(rm.left, rm.top), aFoto(rm.right, rm.top), aFoto(rm.right, rm.bottom), aFoto(rm.left, rm.bottom)];
+  sonido('copiar');
+  escanerPaso('ajustar');
+}
+function escanerCargarArchivo(file) {
+  if (!file) return;
+  var url = URL.createObjectURL(file), img = new Image();
+  img.onload = function() {
+    var esc = Math.min(1, SCAN_MAX / Math.max(img.naturalWidth, img.naturalHeight));
+    var c = document.createElement('canvas');
+    c.width = Math.round(img.naturalWidth * esc); c.height = Math.round(img.naturalHeight * esc);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    URL.revokeObjectURL(url);
+    SCAN.fuente = c;
+    var mx = c.width * 0.08, my = c.height * 0.08;
+    SCAN.pts = [{x: mx, y: my}, {x: c.width - mx, y: my}, {x: c.width - mx, y: c.height - my}, {x: mx, y: c.height - my}];
+    escanerPaso('ajustar');
+  };
+  img.onerror = function() { URL.revokeObjectURL(url); showToast('No se pudo leer la foto', 3000, 'error'); };
+  img.src = url;
+}
+function escanerInput(id, capture) {
+  var input = document.getElementById(id);
+  if (!input) {
+    input = document.createElement('input');
+    input.type = 'file'; input.accept = 'image/*'; input.id = id; input.style.display = 'none';
+    if (capture) input.setAttribute('capture', 'environment');
+    document.body.appendChild(input);
+  }
+  input.value = '';
+  input.onchange = function() { escanerCargarArchivo(input.files[0]); };
+  input.click();
+}
+function escanerGaleria() { escanerInput('dd-scan-galeria', false); }
+function escanerCamaraIphone() { escanerInput('dd-scan-camara', true); }
+
+/* ── Paso 2: ajustar esquinas ── */
+function escanerPintarAjuste() {
+  var f = SCAN.fuente; if (!f) return;
+  var zona = document.getElementById('scan-ajuste'), zw = zona.clientWidth, zh = zona.clientHeight;
+  var k = Math.min((zw - 48) / f.width, (zh - 48) / f.height);
+  var cv = document.getElementById('scan-fuente');
+  if (cv.width !== f.width || cv.height !== f.height) { cv.width = f.width; cv.height = f.height; }
+  cv.getContext('2d').drawImage(f, 0, 0);
+  cv.style.width = f.width * k + 'px'; cv.style.height = f.height * k + 'px';
+  var ox = (zw - f.width * k) / 2, oy = (zh - f.height * k) / 2;
+  cv.style.left = ox + 'px'; cv.style.top = oy + 'px';
+  SCAN.k = k; SCAN.ox = ox; SCAN.oy = oy;
+  escanerPintarPuntos();
+}
+function escanerPintarPuntos() {
+  var pantalla = SCAN.pts.map(function(p) { return {x: SCAN.ox + p.x * SCAN.k, y: SCAN.oy + p.y * SCAN.k}; });
+  document.querySelectorAll('#scan-ajuste .scan-punto').forEach(function(el, i) { el.style.left = pantalla[i].x + 'px'; el.style.top = pantalla[i].y + 'px'; });
+  document.querySelector('#scan-poli polygon').setAttribute('points', pantalla.map(function(p) { return p.x + ',' + p.y; }).join(' '));
+}
+function escanerLupa(i, mostrar) {
+  var lupa = document.getElementById('scan-lupa');
+  if (!mostrar) { lupa.style.display = 'none'; return; }
+  var p = SCAN.pts[i], x = SCAN.ox + p.x * SCAN.k, y = SCAN.oy + p.y * SCAN.k, zona = document.getElementById('scan-ajuste');
+  var ctx = lupa.getContext('2d'), lado = 120 / (SCAN.k * 3);
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, 120, 120);
+  ctx.drawImage(SCAN.fuente, p.x - lado / 2, p.y - lado / 2, lado, lado, 0, 0, 120, 120);
+  ctx.strokeStyle = '#5FD4A8'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(60, 48); ctx.lineTo(60, 72); ctx.moveTo(48, 60); ctx.lineTo(72, 60); ctx.stroke();
+  lupa.style.display = 'block';
+  lupa.style.left = Math.max(6, Math.min(zona.clientWidth - 126, x - 60)) + 'px';
+  lupa.style.top = (y - 160 < 6 ? y + 40 : y - 160) + 'px';
+}
+(function() {
+  document.addEventListener('DOMContentLoaded', function() {
+    var zona = document.getElementById('scan-ajuste');
+    if (!zona) return;
+    zona.addEventListener('pointerdown', function(e) {
+      var el = e.target.closest('.scan-punto');
+      if (!el) return;
+      SCAN.arrastre = parseInt(el.dataset.i, 10);
+      el.setPointerCapture(e.pointerId);
+      escanerLupa(SCAN.arrastre, true);
+      e.preventDefault();
+    });
+    zona.addEventListener('pointermove', function(e) {
+      if (SCAN.arrastre < 0) return;
+      var r = zona.getBoundingClientRect(), f = SCAN.fuente;
+      SCAN.pts[SCAN.arrastre] = {x: Math.max(0, Math.min(f.width, (e.clientX - r.left - SCAN.ox) / SCAN.k)), y: Math.max(0, Math.min(f.height, (e.clientY - r.top - SCAN.oy) / SCAN.k))};
+      escanerPintarPuntos();
+      escanerLupa(SCAN.arrastre, true);
+    });
+    var soltar = function() { if (SCAN.arrastre >= 0) { SCAN.arrastre = -1; escanerLupa(0, false); } };
+    zona.addEventListener('pointerup', soltar);
+    zona.addEventListener('pointercancel', soltar);
+    window.addEventListener('resize', function() { if (document.getElementById('scanner').dataset.paso === 'ajustar' && SCAN.fuente) escanerPintarAjuste(); });
+  });
+})();
+
+/* ── Paso 3: enderezar (homografia) y mejorar ── */
+function homografia(de, a) {
+  // Resuelve H (8 incognitas) que lleva los 4 puntos "de" a los 4 puntos "a"
+  var A = [], b = [];
+  for (var i = 0; i < 4; i++) {
+    var x = de[i].x, y = de[i].y, u = a[i].x, v = a[i].y;
+    A.push([x, y, 1, 0, 0, 0, -u * x, -u * y]); b.push(u);
+    A.push([0, 0, 0, x, y, 1, -v * x, -v * y]); b.push(v);
+  }
+  for (var c = 0; c < 8; c++) {
+    var piv = c;
+    for (var r = c + 1; r < 8; r++) if (Math.abs(A[r][c]) > Math.abs(A[piv][c])) piv = r;
+    var t = A[c]; A[c] = A[piv]; A[piv] = t; var tb = b[c]; b[c] = b[piv]; b[piv] = tb;
+    if (Math.abs(A[c][c]) < 1e-12) return null;
+    for (var r2 = 0; r2 < 8; r2++) {
+      if (r2 === c) continue;
+      var f = A[r2][c] / A[c][c];
+      for (var k = c; k < 8; k++) A[r2][k] -= f * A[c][k];
+      b[r2] -= f * b[c];
+    }
+  }
+  return b.map(function(v, i) { return v / A[i][i]; });
+}
+/* Si la esquina de arriba-izquierda no es la primera (por ejemplo, la foto se tomo de lado), se reordenan */
+function ordenarEsquinas(pts) {
+  var cx = pts.reduce(function(s, p) { return s + p.x; }, 0) / 4, cy = pts.reduce(function(s, p) { return s + p.y; }, 0) / 4;
+  var ord = pts.slice().sort(function(p, q) { return Math.atan2(p.y - cy, p.x - cx) - Math.atan2(q.y - cy, q.x - cx); });
+  // atan2 ordena desde la izquierda en sentido horario (en pantalla); se empieza por la de arriba-izquierda
+  var inicio = 0, mejor = Infinity;
+  ord.forEach(function(p, i) { if (p.x + p.y < mejor) { mejor = p.x + p.y; inicio = i; } });
+  return ord.slice(inicio).concat(ord.slice(0, inicio));
+}
+function escanerProcesar() {
+  var f = SCAN.fuente; if (!f) return;
+  var p = ordenarEsquinas(SCAN.pts);
+  var dist = function(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); };
+  var ancho = (dist(p[0], p[1]) + dist(p[3], p[2])) / 2, alto = (dist(p[0], p[3]) + dist(p[1], p[2])) / 2;
+  if (ancho < 40 || alto < 40) { showToast('Mueve los puntos a las 4 esquinas de la cédula', 3000, 'error'); return; }
+  var W = ancho >= alto ? SCAN_ANCHO : SCAN_ALTO, H = ancho >= alto ? SCAN_ALTO : SCAN_ANCHO;
+  var h = homografia([{x: 0, y: 0}, {x: W, y: 0}, {x: W, y: H}, {x: 0, y: H}], p);
+  if (!h) { showToast('Los puntos no forman una cédula. Ajústalos de nuevo', 3000, 'error'); return; }
+  var src = f.getContext('2d').getImageData(0, 0, f.width, f.height), sd = src.data, sw = f.width, sh = f.height;
+  var out = new ImageData(W, H), od = out.data;
+  for (var y = 0; y < H; y++) {
+    for (var x = 0; x < W; x++) {
+      var den = h[6] * x + h[7] * y + 1, u = (h[0] * x + h[1] * y + h[2]) / den, v = (h[3] * x + h[4] * y + h[5]) / den;
+      var x0 = Math.floor(u), y0 = Math.floor(v), dx = u - x0, dy = v - y0, o = (y * W + x) * 4;
+      if (x0 < 0 || y0 < 0 || x0 >= sw - 1 || y0 >= sh - 1) { od[o] = od[o + 1] = od[o + 2] = 255; od[o + 3] = 255; continue; }
+      var i00 = (y0 * sw + x0) * 4, i10 = i00 + 4, i01 = i00 + sw * 4, i11 = i01 + 4;
+      for (var ch = 0; ch < 3; ch++) {
+        od[o + ch] = (sd[i00 + ch] * (1 - dx) + sd[i10 + ch] * dx) * (1 - dy) + (sd[i01 + ch] * (1 - dx) + sd[i11 + ch] * dx) * dy;
+      }
+      od[o + 3] = 255;
+    }
+  }
+  SCAN.plano = out;
+  escanerMostrarResultado();
+  escanerPaso('listo');
+  sonido('ok');
+}
+/* Mejora: estira el brillo (niveles automaticos), un poco mas de contraste y nitidez;
+   en blanco y negro queda como una fotocopia limpia */
+function escanerMejorar(img, modo) {
+  var W = img.width, H = img.height, d = new Uint8ClampedArray(img.data), n = W * H, hist = new Uint32Array(256);
+  for (var i = 0; i < n; i++) { var o = i * 4; hist[Math.round(0.299 * d[o] + 0.587 * d[o + 1] + 0.114 * d[o + 2])]++; }
+  var acum = 0, lo = 0, hi = 255;
+  for (var v = 0; v < 256; v++) { acum += hist[v]; if (acum > n * 0.01) { lo = v; break; } }
+  acum = 0;
+  for (var v2 = 255; v2 >= 0; v2--) { acum += hist[v2]; if (acum > n * 0.01) { hi = v2; break; } }
+  if (hi - lo < 40) { lo = Math.max(0, lo - 20); hi = Math.min(255, hi + 20); }
+  var tabla = new Uint8ClampedArray(256);
+  for (var t = 0; t < 256; t++) {
+    var x = Math.max(0, Math.min(1, (t - lo) / (hi - lo)));
+    x = x < 0.5 ? 2 * x * x * 0.35 + x * 0.65 : 1 - (2 * (1 - x) * (1 - x) * 0.35 + (1 - x) * 0.65);   // curva suave en S
+    tabla[t] = Math.round(x * 255);
+  }
+  for (var j = 0; j < n; j++) {
+    var p = j * 4;
+    if (modo === 'bn') {
+      var g = tabla[Math.round(0.299 * d[p] + 0.587 * d[p + 1] + 0.114 * d[p + 2])];
+      d[p] = d[p + 1] = d[p + 2] = g;
+    } else {
+      var r = tabla[d[p]], gg = tabla[d[p + 1]], b = tabla[d[p + 2]], m = (r + gg + b) / 3;
+      d[p] = m + (r - m) * 1.12; d[p + 1] = m + (gg - m) * 1.12; d[p + 2] = m + (b - m) * 1.12;
+    }
+  }
+  // Nitidez (mascara de enfoque 3x3, suave)
+  var s = new Uint8ClampedArray(d);
+  for (var y = 1; y < H - 1; y++) for (var x2 = 1; x2 < W - 1; x2++) {
+    var q = (y * W + x2) * 4;
+    for (var c = 0; c < 3; c++) {
+      var vec = (s[q - 4 + c] + s[q + 4 + c] + s[q - W * 4 + c] + s[q + W * 4 + c]) / 4;
+      d[q + c] = s[q + c] + (s[q + c] - vec) * 0.6;
+    }
+  }
+  return new ImageData(d, W, H);
+}
+function escanerMostrarResultado() {
+  var c = document.createElement('canvas'); c.width = SCAN.plano.width; c.height = SCAN.plano.height;
+  c.getContext('2d').putImageData(escanerMejorar(SCAN.plano, SCAN.modo), 0, 0);
+  SCAN.salida = c;
+  document.getElementById('scan-img').src = c.toDataURL('image/jpeg', 0.9);
+  anMarcarSeg('scan-modo', SCAN.modo);
+}
+function escanerModo(m) { SCAN.modo = m; sonido('tap'); escanerMostrarResultado(); }
+function escanerGuardar() {
+  if (!SCAN.salida) return;
+  var cid = SCAN.cid, campo = SCAN.campo;
+  SCAN.salida.toBlob(function(blob) {
+    if (!blob) { showToast('No se pudo guardar la imagen', 3000, 'error'); return; }
+    cerrarEscaner();
+    sonido('guardar');
+    procesarFotoCliente(cid, campo, blob);
+  }, 'image/jpeg', 0.9);
 }
 
 /* ════════════════════ CALIFICACION DEL CLIENTE (automatica) ════════════════════
@@ -3610,6 +4045,42 @@ function asegurarRecibos() {
 }
 
 /* Recibo de un abono: "Recibi de … la suma de …", con el saldo antes y despues */
+/* Para el recibo: las cuotas que cubrio este abono, si fue antes de tiempo, a tiempo o tarde,
+   y un mensaje (felicitacion por pagar antes, o aviso de mora si va atrasado) */
+function puntualidadReciboAbono(d, ab) {
+  var p = puntualidadPrestamo(d), yo = p.abonos.filter(function(x) { return x.a === ab; })[0];
+  var res = {filas: [], mensaje: null};
+  if (!yo || !(d.cuotas || []).length) return res;
+  var peor = null;
+  p.cuotas.forEach(function(q) {
+    var aplicado = Math.min(q.fin, yo.fin) - Math.max(q.ini, yo.ini);
+    if (aplicado < 0.5 || !q.fecha) return;
+    var completa = yo.fin >= q.fin - 0.5, dias = diasEntreISO(q.fecha, ab.fecha), f = {num: q.num, total: q.total, fecha: q.fecha, aplicado: aplicado};
+    if (completa) {
+      f.estado = dias < 0 ? 'Pagada ' + txtDias(-dias) + ' antes' : dias === 0 ? 'Pagada a tiempo' : 'Pagada con ' + txtDias(dias) + ' de atraso';
+      f.clase = dias < 0 ? 'antes' : dias === 0 ? 'atiempo' : dias > 7 ? 'mora' : 'tarde';
+    } else {
+      f.estado = 'Abono parcial · faltan ' + money(q.fin - yo.fin) + (dias > 0 ? ' · ' + txtDias(dias) + ' de atraso' : '');
+      f.clase = dias > 7 ? 'mora' : dias > 0 ? 'tarde' : 'parcial';
+    }
+    peor = peor === null ? dias : Math.max(peor, dias);
+    res.filas.push(f);
+  });
+  if (peor === null) return res;
+  // Si despues de este pago aun quedan cuotas vencidas (y es el ultimo pago), se recuerda la mora
+  var esUltimo = p.abonos.length && p.abonos[p.abonos.length - 1].a === ab;
+  var mora = esUltimo && !d.pagado ? p.cuotas.filter(function(q) { return q.atraso > 0; }) : [];
+  if (mora.length) {
+    var valor = mora.reduce(function(s2, q) { return s2 + q.restante; }, 0), dmax = Math.max.apply(null, mora.map(function(q) { return q.atraso; }));
+    res.mensaje = {clase: 'mora', ico: 'alert-triangle', titulo: 'Tienes ' + mora.length + ' cuota' + (mora.length === 1 ? '' : 's') + ' en mora',
+      texto: 'Quedan ' + money(valor) + ' vencidos, con ' + txtDias(dmax) + ' de atraso. Te pedimos ponerte al día lo antes posible para evitar inconvenientes.'};
+  } else if (peor < 0) res.mensaje = {clase: 'bien', ico: 'rosette-discount-check', titulo: '¡Gracias por pagar antes de tiempo!', texto: 'Pagaste ' + txtDias(-peor) + ' antes de la fecha. Clientes así son los que más valoramos.'};
+  else if (peor === 0) res.mensaje = {clase: 'bien', ico: 'rosette-discount-check', titulo: '¡Gracias por pagar puntual!', texto: 'Pagaste justo en la fecha acordada. Sigue así.'};
+  else if (peor <= 7) res.mensaje = {clase: 'tarde', ico: 'clock-exclamation', titulo: 'Este pago llegó ' + txtDias(peor) + ' tarde', texto: 'Te pedimos pagar en la fecha acordada para mantener tu buen historial.'};
+  else res.mensaje = {clase: 'mora', ico: 'alert-triangle', titulo: 'Este pago llegó con ' + txtDias(peor) + ' de mora', texto: 'Te pedimos pagar en la fecha acordada. Los atrasos largos afectan tu historial y los próximos préstamos.'};
+  return res;
+}
+
 function verReciboAbono(i, ai, e) {
   if (e) e.stopPropagation();
   var d = debtors[i];
@@ -3646,9 +4117,18 @@ function verReciboAbono(i, ai, e) {
     (d.cedula ? '<div class="rc-info-item"><div class="rc-info-key">Cédula</div><div class="rc-info-val">' + esc(d.cedula) + '</div></div>' : '') +
     '<div class="rc-info-item"><div class="rc-info-key">Concepto</div><div class="rc-info-val">' + (esc(d.concepto) || 'Abono a préstamo') + '</div></div>' +
     '<div class="rc-info-item"><div class="rc-info-key">Forma de pago</div><div class="rc-info-val">' + esc(ab.metodo || 'Efectivo') + '</div></div>';
+  var pt = puntualidadReciboAbono(d, ab);
   document.getElementById('rc-table').innerHTML =
     '<div class="rc-table-row"><div class="rc-table-left"><div class="rc-table-name">' + (esc(ab.nota) || 'Abono recibido') + '</div>' +
-    '<div class="rc-table-sub">' + dateStr(ab.fecha) + '</div></div><div class="rc-table-amount">' + money(ab.monto) + '</div></div>';
+    '<div class="rc-table-sub">' + dateStr(ab.fecha) + '</div></div><div class="rc-table-amount">' + money(ab.monto) + '</div></div>' +
+    pt.filas.map(function(f) {
+      return '<div class="rc-table-row"><div class="rc-table-left"><div class="rc-table-name">Cuota ' + f.num + ' de ' + f.total + '</div>' +
+        '<div class="rc-table-sub">Vencía el ' + dateStr(f.fecha) + '</div><span class="rc-cuota-est ' + f.clase + '">' + esc(f.estado) + '</span></div>' +
+        '<div class="rc-table-amount" style="color:#5B6472">' + money(f.aplicado) + '</div></div>';
+    }).join('');
+  var mEl = document.getElementById('rc-mensaje');
+  mEl.className = 'rc-mensaje ' + (pt.mensaje ? pt.mensaje.clase : '');
+  mEl.innerHTML = pt.mensaje ? '<i class="ti ti-' + pt.mensaje.ico + '"></i><div><strong>' + esc(pt.mensaje.titulo) + '</strong>' + esc(pt.mensaje.texto) + '</div>' : '';
   document.getElementById('rc-totales').innerHTML =
     '<div class="rc-total-row"><span class="rc-total-lbl">Total del préstamo</span><span class="rc-total-val">' + money(total) + '</span></div>' +
     '<div class="rc-total-row"><span class="rc-total-lbl">Saldo antes de este pago</span><span class="rc-total-val">' + money(saldoAntes) + '</span></div>' +
@@ -3662,6 +4142,8 @@ function verReciboAbono(i, ai, e) {
     (d.concepto ? '\nConcepto: ' + d.concepto : '') +
     '\n\nSaldo anterior: ' + money(saldoAntes) + '\n' +
     (saldoDespues <= 0.5 ? '*Préstamo pagado por completo*' : '*Nuevo saldo: ' + money(saldoDespues) + '*') +
+    (pt.filas.length ? '\n\n' + pt.filas.map(function(f) { return 'Cuota ' + f.num + ' de ' + f.total + ' (vencía el ' + dateStr(f.fecha) + '): ' + f.estado; }).join('\n') : '') +
+    (pt.mensaje ? '\n\n*' + pt.mensaje.titulo + '* ' + pt.mensaje.texto : '') +
     '\n\n_' + (neg.pie || 'Gracias por su pago.') + '_' + firmaMensaje();
   waUrlRecibo = d.telefono ? 'https://wa.me/' + limpiarTel(d.telefono) + '?text=' + encodeURIComponent(msgWA) : null;
   // Sin telefono no hay a quien enviarle el texto; la imagen si se puede compartir
@@ -4903,7 +5385,7 @@ async function estadoCuentaPDF(clienteId) {
   var doc = new jsPDF({unit: 'pt', format: 'letter'});
   var W = doc.internal.pageSize.getWidth(), M = 40;
   var neg = ajustes.negocio, r = resumenCliente(c);
-  var verde = [0, 168, 120], oscuro = [19, 19, 26], gris = [110, 110, 130];
+  var verde = [19, 121, 91], oscuro = [14, 17, 22], gris = [91, 100, 114], rojo = [200, 66, 59], ambar = [183, 121, 31], azul = [45, 91, 208];
 
   // Encabezado
   doc.setFillColor.apply(doc, oscuro); doc.rect(0, 0, W, 86, 'F');
@@ -4912,7 +5394,7 @@ async function estadoCuentaPDF(clienteId) {
   doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(190, 190, 210);
   var sub = [neg.responsable && neg.nombre ? neg.responsable : '', neg.documento ? 'NIT/C.C. ' + neg.documento : '', neg.telefono ? 'Tel. ' + neg.telefono : ''].filter(Boolean).join('  ·  ');
   if (sub) doc.text(sub, M, 54);
-  doc.setTextColor(0, 229, 160); doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
+  doc.setTextColor(95, 212, 168); doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
   doc.text('ESTADO DE CUENTA', W - M, 38, {align: 'right'});
   doc.setTextColor(190, 190, 210); doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
   doc.text('Fecha: ' + dateStr(hoyISO()), W - M, 54, {align: 'right'});
@@ -4927,17 +5409,38 @@ async function estadoCuentaPDF(clienteId) {
 
   // Resumen
   y += 34;
-  var cajas = [['Saldo pendiente', money(r.saldo)], ['Total pagado', money(r.pagado)], ['Vencido', money(r.vencido)], ['Total a pagar', money(r.total)]];
+  var mora = moraCliente(r.idxs);
+  var cajas = [['Saldo pendiente', money(r.saldo)], ['Total pagado', money(r.pagado)], [mora.maxDias ? 'Vencido · ' + txtDias(mora.maxDias) + ' de mora' : 'Vencido', money(r.vencido)], ['Total a pagar', money(r.total)]];
   var cw = (W - 2 * M - 3 * 10) / 4;
   cajas.forEach(function(k, i) {
     var x = M + i * (cw + 10);
     doc.setDrawColor(220, 220, 228); doc.setFillColor(247, 247, 250); doc.roundedRect(x, y, cw, 46, 5, 5, 'FD');
     doc.setFontSize(8); doc.setTextColor.apply(doc, gris); doc.text(k[0].toUpperCase(), x + 10, y + 16);
     doc.setFont('helvetica', 'bold'); doc.setFontSize(13);
-    doc.setTextColor.apply(doc, i === 0 || (i === 2 && r.vencido > 0.5) ? [210, 60, 60] : i === 1 ? verde : [30, 30, 40]);
+    doc.setTextColor.apply(doc, i === 0 || (i === 2 && r.vencido > 0.5) ? rojo : i === 1 ? verde : [30, 30, 40]);
     doc.text(k[1], x + 10, y + 35); doc.setFont('helvetica', 'normal');
   });
-  y += 66;
+  y += 62;
+
+  // Mensaje para el cliente: aviso de mora, felicitacion por pagar a tiempo, o al dia
+  var todas = [];
+  r.idxs.forEach(function(i) { puntualidadPrestamo(debtors[i]).cuotas.forEach(function(q) { if (q.dias !== null) todas.push(q.dias); }); });
+  var antes = todas.filter(function(x) { return x < 0; }).length, puntual = todas.filter(function(x) { return x === 0; }).length, tarde = todas.filter(function(x) { return x > 0; }).length;
+  var aviso;
+  if (mora.cuotas) aviso = {color: rojo, fondo: [251, 238, 237], titulo: 'AVISO DE MORA',
+    texto: 'Tiene ' + mora.cuotas + ' cuota' + (mora.cuotas === 1 ? '' : 's') + ' vencida' + (mora.cuotas === 1 ? '' : 's') + ' por ' + money(mora.valor) + '. La más antigua lleva ' + txtDias(mora.maxDias) + ' de atraso. Le pedimos ponerse al día lo antes posible para evitar inconvenientes y mantener un buen historial.'};
+  else if (todas.length && !tarde) aviso = {color: verde, fondo: [232, 243, 238], titulo: '¡GRACIAS POR SU PUNTUALIDAD!',
+    texto: 'Ha pagado todas sus cuotas a tiempo' + (antes ? ' (' + antes + ' antes de la fecha)' : '') + '. Clientes como usted son los que más valoramos.'};
+  else if (todas.length) aviso = {color: verde, fondo: [232, 243, 238], titulo: 'ESTÁ AL DÍA',
+    texto: 'No tiene cuotas vencidas. De ' + todas.length + ' cuota' + (todas.length === 1 ? '' : 's') + ' pagada' + (todas.length === 1 ? '' : 's') + ': ' + (antes + puntual) + ' a tiempo o antes y ' + tarde + ' con atraso. Le invitamos a pagar en la fecha acordada.'};
+  if (aviso) {
+    var lineas = doc.setFontSize(9.5).splitTextToSize(aviso.texto, W - 2 * M - 28), alto = 30 + lineas.length * 12;
+    doc.setFillColor.apply(doc, aviso.fondo); doc.roundedRect(M, y, W - 2 * M, alto, 6, 6, 'F');
+    doc.setFillColor.apply(doc, aviso.color); doc.rect(M, y, 4, alto, 'F');
+    doc.setTextColor.apply(doc, aviso.color); doc.setFont('helvetica', 'bold'); doc.setFontSize(10.5); doc.text(aviso.titulo, M + 16, y + 18);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(43, 49, 59); doc.text(lineas, M + 16, y + 32);
+    y += alto + 16;
+  }
 
   var estilo = {theme: 'grid', styles: {fontSize: 8.5, cellPadding: 5, textColor: [40, 40, 50]}, headStyles: {fillColor: oscuro, textColor: 255, fontStyle: 'bold'},
                 alternateRowStyles: {fillColor: [248, 248, 251]}, margin: {left: M, right: M}};
@@ -4951,19 +5454,24 @@ async function estadoCuentaPDF(clienteId) {
     columnStyles: {2: {halign: 'right'}, 3: {halign: 'right'}, 4: {halign: 'right'}, 5: {halign: 'right', fontStyle: 'bold'}}
   }));
 
-  // Cuotas de los prestamos activos
-  idxs.filter(function(i) { return !debtors[i].pagado; }).forEach(function(i) {
-    var d = debtors[i], rd = resumenDeudor(d);
-    if (!rd.alloc.length) return;
+  // Cuotas de cada prestamo (activos y pagados): cuando se pago cada una y con cuantos dias de diferencia
+  idxs.filter(function(i) { return !debtors[i].archivado && (debtors[i].cuotas || []).length; }).forEach(function(i) {
+    var d = debtors[i], pt = puntualidadPrestamo(d).cuotas;
     doc.autoTable(Object.assign({}, estilo, {startY: doc.lastAutoTable.finalY + 18,
-      head: [[{content: 'Cuotas · ' + (d.concepto || 'Préstamo'), colSpan: 5, styles: {halign: 'left'}}], ['N.', 'Fecha', 'Valor', 'Abonado', 'Estado']],
-      body: rd.alloc.map(function(q, k) {
-        var dl = daysLeft(q.fecha);
-        var est = q.status === 'pagada' ? 'Pagada' : q.status === 'parcial' ? 'Parcial (falta ' + money(q.restante) + ')' : (dl !== null && dl < 0 ? 'Vencida' : 'Pendiente');
-        return [k + 1, dateStr(q.fecha), money(q.monto), money(q.aplicado), est];
+      head: [[{content: 'Cuotas · ' + (d.concepto || 'Préstamo') + (d.pagado ? ' (pagado)' : ''), colSpan: 5, styles: {halign: 'left'}}], ['N.', 'Vence', 'Valor', 'Estado', 'Puntualidad']],
+      body: pt.map(function(q) {
+        var est, pun;
+        if (q.pagadaEl) { est = 'Pagada el ' + dateStr(q.pagadaEl); pun = q.dias < 0 ? txtDias(-q.dias) + ' antes' : q.dias === 0 ? 'A tiempo' : txtDias(q.dias) + ' de atraso'; }
+        else if (q.atraso > 0) { est = q.restante < q.monto - 0.5 ? 'Vencida · falta ' + money(q.restante) : 'Vencida sin pagar'; pun = txtDias(q.atraso) + ' en mora'; }
+        else { var dl = daysLeft(q.fecha); est = q.restante < q.monto - 0.5 ? 'Abonada · falta ' + money(q.restante) : 'Pendiente'; pun = dl === 0 ? 'Vence hoy' : dl !== null ? 'Faltan ' + txtDias(dl) : ''; }
+        return [q.num, dateStr(q.fecha), money(q.monto), est, pun];
       }),
-      columnStyles: {0: {halign: 'center', cellWidth: 30}, 2: {halign: 'right'}, 3: {halign: 'right'}},
-      didParseCell: function(h) { if (h.section === 'body' && h.column.index === 4 && /Vencida/.test(h.cell.raw)) h.cell.styles.textColor = [210, 60, 60]; }
+      columnStyles: {0: {halign: 'center', cellWidth: 30}, 2: {halign: 'right'}, 4: {fontStyle: 'bold'}},
+      didParseCell: function(h) {
+        if (h.section !== 'body' || h.column.index !== 4) return;
+        var t = String(h.cell.raw || '');
+        h.cell.styles.textColor = /mora/.test(t) ? rojo : /atraso/.test(t) ? ambar : /antes|A tiempo/.test(t) ? verde : /hoy/.test(t) ? ambar : gris;
+      }
     }));
   });
 
@@ -4976,7 +5484,7 @@ async function estadoCuentaPDF(clienteId) {
     body: pagos.length ? pagos.map(function(p) { return [dateStr(p.a.fecha), p.a.recibo ? numeroRecibo(p.a.recibo) : '—', p.d.concepto || 'Préstamo', p.a.metodo || '—', money(p.a.monto)]; })
                        : [[{content: 'Sin pagos registrados', colSpan: 5, styles: {halign: 'center', textColor: gris}}]],
     foot: pagos.length ? [[{content: 'Total pagado', colSpan: 4, styles: {halign: 'right'}}, {content: money(r.pagado), styles: {halign: 'right'}}]] : undefined,
-    footStyles: {fillColor: [235, 250, 244], textColor: [0, 120, 85], fontStyle: 'bold'},
+    footStyles: {fillColor: [232, 243, 238], textColor: verde, fontStyle: 'bold'},
     columnStyles: {4: {halign: 'right'}}
   }));
 
